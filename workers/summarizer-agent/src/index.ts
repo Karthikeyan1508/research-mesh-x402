@@ -68,6 +68,8 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
   }
 
   for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey}`,
@@ -77,6 +79,7 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
           }),
+          signal: controller.signal,
         }
       );
       if (!response.ok) {
@@ -91,6 +94,8 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
       if (attempt === retries) throw err;
       console.warn(`[callGemini] Attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw new Error("Failed to call Gemini API after retries");
