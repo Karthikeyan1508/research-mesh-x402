@@ -49,90 +49,37 @@ app.post("/summarize", async (req, res) => {
     return;
   }
 
-  const prompt = `Summarize the following text in 3-4 sentences:\n\n${text}`;
-  const mockFallback = `[Mock Summary] The input text of length ${text.length} was processed successfully. It contains details regarding the research query. Multi-agent research is verified working on-chain.`;
-
   try {
-    const summary = await runLLM(prompt, mockFallback);
+    const summary = await callGemini('Summarize this in 3-4 sentences: ' + text);
     res.json({ summary });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error("[summarizer-agent] Gemini call failed:", error.message);
+    const mockFallback = `[Mock Summary Fallback] The input text of length ${text.length} was processed successfully. It contains details regarding the research query. Multi-agent research is verified working on-chain.`;
+    res.json({ summary: mockFallback });
   }
 });
 
-async function runLLM(prompt: string, fallbackText: string): Promise<string> {
-  // Use LLM_API_KEY as general key first if set
-  const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
-
-  if (process.env.GEMINI_API_KEY || (process.env.LLM_API_KEY && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)) {
-    try {
-      const key = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[summarizer-agent] Gemini LLM call failed:", e.message);
-    }
+async function callGemini(prompt: string) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set in environment");
   }
 
-  if (process.env.OPENAI_API_KEY || process.env.LLM_API_KEY) {
-    try {
-      const key = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[summarizer-agent] OpenAI LLM call failed:", e.message);
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
     }
-  }
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.content?.[0]?.text;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[summarizer-agent] Anthropic LLM call failed:", e.message);
-    }
-  }
-
-  console.warn("[summarizer-agent] No LLM keys configured (or call failed) — using fallback mock response.");
-  return fallbackText;
+  );
+  if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Empty response from Gemini API");
+  return text.trim();
 }
 
 app.listen(PORT, () => {

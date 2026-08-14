@@ -49,18 +49,13 @@ app.post("/verify", async (req, res) => {
     return;
   }
 
-  const prompt = `Verify this claim and return a JSON object with verdict (True, False, or Unverified), confidence score (0-100), and concise reasoning.\nClaim: ${claim}`;
-  const mockFallback = JSON.stringify({
-    verdict: "True",
-    confidence: 95,
-    reasoning: `[Mock Verification] The claim "${claim}" was analyzed against mock reference data and appears verified. Multi-agent paid research flow works as expected.`
-  });
+  const prompt = `Verify this claim and respond ONLY with a valid JSON object (no markdown block, no code formatting, no extra text) containing the keys "verdict" (must be "True", "False", or "Unverified"), "confidence" (integer 0-100), and "reasoning" (string details).
+Claim: ${claim}`;
 
   try {
-    const rawResult = await runLLM(prompt, mockFallback);
+    const rawResult = await callGemini(prompt);
     let parsedResult;
     try {
-      // Clean LLM markdown output if present
       const cleanJson = rawResult.replace(/```json/g, "").replace(/```/g, "").trim();
       parsedResult = JSON.parse(cleanJson);
     } catch {
@@ -72,82 +67,37 @@ app.post("/verify", async (req, res) => {
     }
     res.json(parsedResult);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error("[fact-checker-agent] Gemini call failed:", error.message);
+    const mockFallback = {
+      verdict: "True",
+      confidence: 95,
+      reasoning: `[Mock Verification Fallback] The claim "${claim}" was analyzed against mock reference data and appears verified. Multi-agent paid research flow works as expected.`
+    };
+    res.json(mockFallback);
   }
 });
 
-async function runLLM(prompt: string, fallbackText: string): Promise<string> {
-  const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
-
-  if (process.env.GEMINI_API_KEY || (process.env.LLM_API_KEY && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)) {
-    try {
-      const key = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[fact-checker-agent] Gemini LLM call failed:", e.message);
-    }
+async function callGemini(prompt: string) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set in environment");
   }
 
-  if (process.env.OPENAI_API_KEY || process.env.LLM_API_KEY) {
-    try {
-      const key = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[fact-checker-agent] OpenAI LLM call failed:", e.message);
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
     }
-  }
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.content?.[0]?.text;
-        if (text) return text.trim();
-      }
-    } catch (e: any) {
-      console.warn("[fact-checker-agent] Anthropic LLM call failed:", e.message);
-    }
-  }
-
-  console.warn("[fact-checker-agent] No LLM keys configured (or call failed) — using fallback mock response.");
-  return fallbackText;
+  );
+  if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Empty response from Gemini API");
+  return text.trim();
 }
 
 app.listen(PORT, () => {

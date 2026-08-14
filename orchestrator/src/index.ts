@@ -86,7 +86,7 @@ async function runLLM(prompt: string, fallbackText: string): Promise<string> {
   if (process.env.GEMINI_API_KEY || (process.env.LLM_API_KEY && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)) {
     try {
       const key = process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
