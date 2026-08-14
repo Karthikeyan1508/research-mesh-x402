@@ -9,6 +9,8 @@
 // https://x402.goplausible.xyz/ before running, this SDK moves fast.
 
 import "dotenv/config";
+import express from "express";
+import cors from "cors";
 import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactAvmScheme, toClientAvmSigner } from "@x402/avm";
 import algosdk from "algosdk";
@@ -19,7 +21,10 @@ type PaymentLogEntry = {
   txId?: string;
 };
 
-const paymentLog: PaymentLogEntry[] = [];
+type ResearchResult = {
+  report: string;
+  payments: PaymentLogEntry[];
+};
 
 function buildClient() {
   const privateKey = process.env.ORCHESTRATOR_PRIVATE_KEY;
@@ -44,40 +49,6 @@ function buildClient() {
   const client = new x402Client();
   client.register("algorand:*", new ExactAvmScheme(signer));
   return client;
-}
-
-async function callWorker(workerName: string, url: string, options?: RequestInit) {
-  const client = buildClient();
-  console.log(`[orchestrator] paying ${workerName} -> ${url}`);
-
-  const fetchWithPay = wrapFetchWithPayment(fetch, client);
-  const response = await fetchWithPay(url, options);
-  if (!response.ok) {
-    const paymentRequiredHeader = response.headers.get("payment-required");
-    if (paymentRequiredHeader) {
-      try {
-        const decoded = JSON.parse(Buffer.from(paymentRequiredHeader, "base64").toString("utf-8"));
-        console.error(`[orchestrator] Payment Required details:`, JSON.stringify(decoded, null, 2));
-      } catch (e) {}
-    }
-    throw new Error(`${workerName} call failed: HTTP ${response.status}`);
-  }
-
-  // The PAYMENT-RESPONSE header contains base64-encoded SettleResponse object.
-  const responseHeader = response.headers.get("payment-response");
-  let txId: string | undefined;
-  if (responseHeader) {
-    try {
-      const decoded = JSON.parse(Buffer.from(responseHeader, "base64").toString("utf-8"));
-      txId = decoded.transaction;
-    } catch {
-      txId = responseHeader;
-    }
-  }
-
-  paymentLog.push({ worker: workerName, url, txId });
-
-  return response.json();
 }
 
 async function runLLM(prompt: string, fallbackText: string): Promise<string> {
@@ -154,20 +125,51 @@ async function runLLM(prompt: string, fallbackText: string): Promise<string> {
   return fallbackText;
 }
 
-async function main() {
-  const query = process.argv[2] ?? "latest news on Algorand x402";
+async function executeResearch(query: string): Promise<ResearchResult> {
+  const localPayments: PaymentLogEntry[] = [];
 
-  console.log(`\nResearchMesh — researching: "${query}"\n`);
+  const localCallWorker = async (workerName: string, url: string, options?: RequestInit) => {
+    const client = buildClient();
+    console.log(`[orchestrator] paying ${workerName} -> ${url}`);
+
+    const fetchWithPay = wrapFetchWithPayment(fetch, client);
+    const response = await fetchWithPay(url, options);
+    if (!response.ok) {
+      const paymentRequiredHeader = response.headers.get("payment-required");
+      if (paymentRequiredHeader) {
+        try {
+          const decoded = JSON.parse(Buffer.from(paymentRequiredHeader, "base64").toString("utf-8"));
+          console.error(`[orchestrator] Payment Required details:`, JSON.stringify(decoded, null, 2));
+        } catch (e) {}
+      }
+      throw new Error(`${workerName} call failed: HTTP ${response.status}`);
+    }
+
+    const responseHeader = response.headers.get("payment-response");
+    let txId: string | undefined;
+    if (responseHeader) {
+      try {
+        const decoded = JSON.parse(Buffer.from(responseHeader, "base64").toString("utf-8"));
+        txId = decoded.transaction;
+      } catch {
+        txId = responseHeader;
+      }
+    }
+
+    localPayments.push({ worker: workerName, url, txId });
+
+    return response.json();
+  };
 
   // 1. Call Search Agent (Paid)
-  const searchResult = await callWorker(
+  const searchResult = await localCallWorker(
     "Search Agent",
     `${process.env.SEARCH_AGENT_URL ?? "http://localhost:4021"}/search?q=${encodeURIComponent(
       query
     )}`
   );
 
-  console.log("\n[orchestrator] Search Agent responded with results.");
+  console.log("[orchestrator] Search Agent responded with results.");
 
   const resultsText = JSON.stringify(searchResult.results);
 
@@ -175,10 +177,10 @@ async function main() {
   const claimPrompt = `Based on these search results for query "${query}", extract a single key factual claim or statement that should be fact-checked.\nSearch Results: ${resultsText}`;
   const mockClaim = `Algorand's x402 protocol enables pay-per-API-call micropayments.`;
   const claimToVerify = await runLLM(claimPrompt, mockClaim);
-  console.log(`\n[orchestrator] Extracted claim to verify: "${claimToVerify}"`);
+  console.log(`[orchestrator] Extracted claim to verify: "${claimToVerify}"`);
 
   // 3. Call Fact-Checker Agent (Paid)
-  const verifyResult = await callWorker(
+  const verifyResult = await localCallWorker(
     "Fact-Checker Agent",
     `${process.env.FACT_CHECKER_AGENT_URL ?? "http://localhost:4023"}/verify`,
     {
@@ -190,7 +192,7 @@ async function main() {
   console.log(`[orchestrator] Fact-Checker Agent responded:`, verifyResult);
 
   // 4. Call Summarizer Agent (Paid)
-  const summarizeResult = await callWorker(
+  const summarizeResult = await localCallWorker(
     "Summarizer Agent",
     `${process.env.SUMMARIZER_AGENT_URL ?? "http://localhost:4022"}/summarize`,
     {
@@ -202,7 +204,7 @@ async function main() {
   console.log(`[orchestrator] Summarizer Agent responded:`, summarizeResult);
 
   // 5. Synthesize final report using LLM
-  console.log("\n[orchestrator] Synthesizing final report...");
+  console.log("[orchestrator] Synthesizing final report...");
   const reportPrompt = `Create a final synthesized research report for query "${query}" based on the following resources:
 - Summary of Search: ${summarizeResult.summary}
 - Fact-Check Verdict for "${claimToVerify}": ${verifyResult.verdict} (Confidence: ${verifyResult.confidence}%, Reasoning: ${verifyResult.reasoning})
@@ -223,14 +225,58 @@ ${summarizeResult.summary}
 
   const finalReport = await runLLM(reportPrompt, fallbackReport);
 
-  console.log("\n========================================================");
-  console.log("                  FINAL RESEARCH REPORT                 ");
-  console.log("========================================================");
-  console.log(finalReport);
-  console.log("========================================================\n");
+  return {
+    report: finalReport,
+    payments: localPayments
+  };
+}
 
-  console.log("[orchestrator] Payment audit trail:");
-  console.table(paymentLog);
+async function main() {
+  const isServer = process.argv.includes("--server") || !process.argv[2];
+
+  if (isServer) {
+    const app = express();
+    app.use(cors());
+    app.use(express.json());
+
+    app.post("/research", async (req, res) => {
+      const { query } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: "Missing query parameter" });
+      }
+
+      console.log(`\n[orchestrator] /research request received: "${query}"`);
+      try {
+        const result = await executeResearch(query);
+        res.json(result);
+      } catch (err: any) {
+        console.error(`[orchestrator] research failed:`, err.message);
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    const PORT = Number(process.env.PORT) || 4020;
+    app.listen(PORT, () => {
+      console.log(`[orchestrator] server listening on port :${PORT}`);
+    });
+  } else {
+    const query = process.argv[2];
+    console.log(`\nResearchMesh (CLI Mode) — researching: "${query}"\n`);
+    try {
+      const result = await executeResearch(query);
+      console.log("\n========================================================");
+      console.log("                  FINAL RESEARCH REPORT                 ");
+      console.log("========================================================");
+      console.log(result.report);
+      console.log("========================================================\n");
+
+      console.log("[orchestrator] Payment audit trail:");
+      console.table(result.payments);
+    } catch (err: any) {
+      console.error("[orchestrator] failed:", err.message);
+      process.exit(1);
+    }
+  }
 }
 
 main().catch((err) => {
