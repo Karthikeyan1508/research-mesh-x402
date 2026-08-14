@@ -1,174 +1,112 @@
 # ResearchMesh
 
-An agent-to-agent research marketplace on Algorand. An orchestrator agent pays specialist
-worker agents (Search, Summarizer, Fact-Checker) per call, in USDC, over x402 — and returns
-a final report with an on-chain payment audit trail.
+**An agent-to-agent research marketplace, paid per call, settled on Algorand via x402.**
 
-Built for the **x402 Global Challenge PreHack: BLR Edition** (23 Aug 2026).
-
-> **A note on the SDK**: x402 on Algorand is a brand-new, fast-moving stack. The package
-> names and code below are based on GoPlausible's official docs as of Aug 2026
-> (`@x402-avm/*`). Before you `npm install`, skim
-> https://x402.goplausible.xyz/ and the linked GitHub examples to confirm the exact
-> package names/versions haven't shifted since this was written.
+Built for the [x402 Global Challenge PreHack: BLR Edition](https://algorand.co/global-x402-challenge) (23 Aug 2026), hosted by AlgoBharat, KrowdKraft, HackCulture, and Algorand.
 
 ---
 
-## Build order (do these in sequence, not all at once)
+## The Problem
 
-1. **Environment setup** — install tools, create wallets, get testnet funds.
-2. **Search Agent only** — one x402-gated endpoint. Get 402 → pay → 200 working end to end.
-   This alone satisfies "at least one x402 endpoint" for the idea-submission requirement.
-3. **Orchestrator** — a script that calls the Search Agent, pays it, and prints the result.
-4. **Summarizer + Fact-Checker Agents** — copy the Search Agent pattern.
-5. **Orchestrator logic** — LLM plans subtasks, calls all three workers in sequence, composes
-   a final cited report, logs every payment + tx id.
-6. **Frontend** — a simple UI that streams "paying X... settled (tx ...)" and shows the report.
-7. **Bazaar discovery (stretch)** — register workers so the orchestrator finds them dynamically
-   instead of hardcoded URLs.
-8. **Polish + submit** — README, demo video/script, push to a public GitHub repo (must be
-   open-source).
+Getting a well-researched, trustworthy answer today means either relying on a single LLM that can hallucinate, or a human manually stitching together separate search, summarization, and fact-checking tools. There's no standard way for one AI agent to autonomously discover a specialist agent, pay it for a single use, and prove afterward exactly what was paid to whom for which piece of the work. Existing solutions rely on subscriptions or API keys, which don't fit a world where agents transact with each other in real time, on demand, without a human approving each call.
 
-Do NOT try to build all three workers plus discovery plus frontend before testing a single
-payment end to end. Get one payment flowing first — everything else is a repeat of the same
-pattern.
+## The Solution
 
----
+ResearchMesh is an orchestrator agent paired with three specialist worker agents — **Search**, **Fact-Checker**, and **Summarizer** — each running as its own micro-service, each gated by the x402 payment protocol. When a user asks a research question, the orchestrator calls each worker in sequence, paying per call in real USDC the moment it uses that worker's endpoint. Payment settles instantly on Algorand testnet, and the orchestrator assembles the verified results into a final cited report, alongside a transparent, on-chain audit trail of every micropayment made.
 
-## Phase 1 — Environment setup
+Every request produces:
+- A synthesized research report (Gemini-generated)
+- A fact-checked claim with a confidence score
+- A payment audit trail linking to real settled transactions on Algorand
+
+## Live Demo
+
+Open `index.html` in a browser (with the orchestrator and all three agent servers running locally), type a research question, and click **Research**. Within seconds you'll see:
+
+1. The orchestrator paying the Search Agent ($0.01 USDC) for live web results
+2. The orchestrator paying the Fact-Checker Agent ($0.005 USDC) to verify a claim
+3. The orchestrator paying the Summarizer Agent ($0.005 USDC) to condense the findings
+4. A final report, plus a "Payment Audit Trail" panel with clickable links to each settled transaction on [Lora](https://lora.algokit.io/testnet), Algorand's testnet explorer
+
+## Architecture
+
+### High level
+
+```
+User → Orchestrator (Express server, port 4020)
+          │
+          ├─ Search Agent (port 4021)      — x402-gated, real Tavily search
+          ├─ Fact-Checker Agent (4023)     — x402-gated, Gemini-verified claims
+          └─ Summarizer Agent (4022)       — x402-gated, Gemini-condensed summary
+          │
+          └─ Aggregates results → synthesizes final report → returns JSON
+                (report + payment audit trail) → rendered by index.html
+```
+
+### How a single paid call works
+
+1. Orchestrator calls a worker's endpoint (e.g. `GET /search`).
+2. Worker responds `402 Payment Required` with a structured payment challenge (price, Algorand address, asset ID) in the response headers.
+3. Orchestrator's x402 client (`@x402/fetch` + `@x402/avm`) signs a payment from its own Algorand wallet and retries the request with an `X-PAYMENT` header.
+4. The GoPlausible x402 facilitator verifies the signature and settles the USDC payment on Algorand testnet (~3 second finality).
+5. Once settlement is confirmed, the worker returns `200 OK` with the real result (search data, summary, or verification verdict).
+6. The orchestrator logs `{worker, amount, txId}` for every call, building the audit trail shown in the final UI.
+
+## Tech Stack
+
+- **Backend:** Node.js + TypeScript, Express
+- **x402:** `@x402/core`, `@x402/avm`, `@x402/express`, `@x402/fetch`
+- **Blockchain:** Algorand testnet, `algosdk`, USDC (ASA 10458941) as the payment asset
+- **Facilitator:** GoPlausible's hosted x402 facilitator
+- **Search:** Tavily API
+- **LLM:** Google Gemini API — model: `gemini-3.1-flash-lite` (summarization + fact-checking + report synthesis)
+- **Frontend:** Single-page HTML/CSS/JS dashboard with live payment status and markdown report rendering
+
+## x402 Endpoints
+
+| Agent | Route | Price | What it does |
+|---|---|---|---|
+| Search Agent | `GET /search` | $0.01 USDC | Live web search via Tavily |
+| Fact-Checker Agent | `POST /verify` | $0.005 USDC | Verifies a claim via Gemini, returns verdict + confidence |
+| Summarizer Agent | `POST /summarize` | $0.005 USDC | Condenses findings via Gemini |
+
+All three settle on Algorand testnet through the GoPlausible facilitator, with a `feePayer` covering network fees on behalf of the paying client (fee abstraction).
+
+## Running It Locally
 
 ```bash
-# Node 18+ and a package manager
-node -v
+# 1. Install dependencies in each service
+cd workers/search-agent && npm install
+cd ../summarizer-agent && npm install
+cd ../fact-checker-agent && npm install
+cd ../../orchestrator && npm install
 
-# AlgoKit CLI (Algorand's dev toolkit) — installs via pipx
-pipx install algokit
-algokit --version
-# If pipx isn't installed: https://github.com/algorandfoundation/algokit-cli#install
+# 2. Set up .env in each folder (see .env.example) with your own
+#    Algorand testnet wallet, Tavily key, and Gemini key
 
-# Confirm you can reach the facilitator
-curl https://facilitator.goplausible.xyz/health
+# 3. Start each agent (separate terminals)
+cd workers/search-agent && npm run dev        # :4021
+cd workers/summarizer-agent && npm run dev    # :4022
+cd workers/fact-checker-agent && npm run dev  # :4023
+cd orchestrator && npm run dev                # :4020 (server mode)
+
+# 4. Serve the frontend
+npx -y serve . --listen 3000
+# If port 3000 is already in use, serve automatically picks the next free port
+# and prints it, e.g.:
+#   Serving!
+#   - Local:    http://localhost:52392
+#   - Network:  http://192.168.56.1:52392
+#   This port was picked because 3000 is in use.
+# Open whichever "Local" URL is printed in your browser.
 ```
 
-### Wallets
+## Roadmap / Stretch Goals
 
-You need one Algorand testnet account per agent (orchestrator + 3 workers = 4 total).
-Easiest path: generate them with `algosdk` and fund via AlgoKit's testnet dispenser.
-
-```bash
-cd research-mesh
-npm install algosdk dotenv --workspace=scripts 2>/dev/null || npm install algosdk dotenv
-node scripts/generate-wallets.js   # see scripts/ below — prints 4 addresses + mnemonics
-```
-
-Fund each address at the testnet dispenser (via AlgoKit CLI or
-https://bank.testnet.algorand.network) with test ALGO, and get test USDC (ASA id referenced
-in `@x402-avm/avm` as `USDC_TESTNET_ASA_ID`) — the facilitator docs link to a testnet USDC
-faucet/opt-in flow.
-
-Copy `.env.example` to `.env` in each service folder and fill in the addresses/keys.
+- **Bazaar discovery** — register each worker's capability/price in the x402 Bazaar registry so the orchestrator finds agents dynamically instead of via hardcoded URLs.
+- **More worker agents** — additional specialists (translation, sentiment, citation-formatting) plugged into the same pattern.
+- **Mainnet deployment** — carrying this forward into the Algorand Global x402 Challenge.
 
 ---
 
-## Phase 2 — Search Agent (the core MVP)
-
-```bash
-cd workers/search-agent
-npm install
-cp .env.example .env   # fill in SEARCH_AGENT_ALGO_ADDRESS + FACILITATOR_URL
-npm run dev
-```
-
-This starts an Express server on `:4021` with one route, `GET /search`, gated by x402.
-Hitting it without payment returns `402`. See `src/index.ts` — the `mockSearch()` function is
-a stub; swap it for a real Tavily/SerpAPI call once the payment flow works.
-
-Test it's gated correctly:
-
-```bash
-curl -i http://localhost:4021/search?q=algorand   # expect 402, not 200
-```
-
-Don't move to the orchestrator until you see that 402.
-
----
-
-## Phase 3 — Orchestrator (pays the Search Agent)
-
-```bash
-cd orchestrator
-npm install
-cp .env.example .env   # fill in ORCHESTRATOR_PRIVATE_KEY
-npm run dev -- "latest news on Algorand x402"
-```
-
-`src/index.ts` builds a signer from the orchestrator's wallet, wraps `fetch` with the x402
-client, and calls the Search Agent. On success you should see the 402 → pay → 200 round trip
-happen automatically and the search results print to the console. This is your first real
-payment — check the transaction on Lora (Algorand's testnet explorer) to confirm it settled.
-
----
-
-## Phase 4 — Summarizer + Fact-Checker Agents
-
-Copy `workers/search-agent` into `workers/summarizer-agent` and `workers/fact-checker-agent`
-(stub folders are already there). Change:
-- the route path (`/summarize`, `/verify`)
-- the price (these can be cheaper than search, e.g. `$0.005`)
-- the handler logic (call an LLM instead of a search API)
-
-Same pattern, three times. This is mechanical once Phase 2 works.
-
----
-
-## Phase 5 — Orchestrator logic
-
-Extend `orchestrator/src/index.ts` so it:
-1. Takes a user question.
-2. Asks an LLM to plan subtasks (does this need a search? a fact-check?).
-3. Calls Search → Fact-Checker → Summarizer (or whatever order fits) via the paid endpoints.
-4. Logs `{worker, amountPaid, txId}` for every call.
-5. Asks the LLM to synthesize a final answer citing what came back.
-6. Prints/returns the report + the payment audit trail.
-
----
-
-## Phase 6 — Frontend (optional but strong for the demo)
-
-A minimal Next.js or plain HTML page that:
-- Takes the user's question.
-- Streams status lines as each payment happens ("Paying Search Agent 0.01 USDC... settled ✅").
-- Shows the final report.
-- Shows a table of all payments with links to `https://lora.algokit.io/testnet/tx/<txId>`.
-
----
-
-## Phase 7 — Bazaar discovery (stretch goal)
-
-Register each worker's `{capability, endpoint, price, payTo}` in the x402 Bazaar registry
-(`@x402-avm/extensions`) at startup, and have the orchestrator query the registry instead of
-hardcoding `localhost:4021` etc. Only tackle this after Phases 2–5 work — it's additive, not
-required for a working demo.
-
----
-
-## Folder structure
-
-```
-research-mesh/
-  scripts/
-    generate-wallets.js       # one-off: creates 4 testnet accounts
-  workers/
-    search-agent/             # DONE FIRST — x402-gated /search endpoint
-    summarizer-agent/         # copy of search-agent, different route+logic
-    fact-checker-agent/       # copy of search-agent, different route+logic
-  orchestrator/               # LLM planner + x402 client that pays the workers
-  frontend/                   # (add later) demo UI
-```
-
-## Before you submit
-
-- Push this to a **public** GitHub repo (open-source is a requirement).
-- Record a short demo (screen capture is fine) showing a real payment settling on testnet —
-  judges will want to see the 402 → pay → 200 flow actually happen, not just code.
-- Keep the core idea in your demo aligned with what you submitted in the idea-selection round.
+*Built as part of the x402 Global Challenge PreHack: BLR Edition, 23 August 2026.*
