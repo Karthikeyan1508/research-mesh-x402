@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResearchMesh — Paid Multi-Agent Research Portal</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked.js Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(22, 28, 45, 0.4);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --glow-color: rgba(99, 102, 241, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .logo-icon {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-top: 8px;
+      font-weight: 300;
+    }
+
+    .search-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      margin-bottom: 30px;
+      animation: fadeInUp 0.8s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--accent), transparent);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      position: relative;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 18px 24px;
+      color: white;
+      font-family: inherit;
+      font-size: 1.1rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--glow-color);
+      background: rgba(17, 24, 39, 0.8);
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none;
+      border-radius: 16px;
+      padding: 0 32px;
+      color: white;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+      background: linear-gradient(135deg, var(--primary-hover), var(--accent));
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Loading States */
+    .loading-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 0;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .spinner {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 30px;
+    }
+
+    .spinner-circle {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid transparent;
+      border-top-color: var(--primary);
+      border-bottom-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+    }
+
+    .spinner-inner {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      background: var(--bg-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--panel-border);
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: rgba(17, 24, 39, 0.4);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      opacity: 0.5;
+    }
+
+    .step-item.active {
+      opacity: 1;
+      border-color: var(--primary);
+      box-shadow: 0 0 15px var(--glow-color);
+    }
+
+    .step-item.completed {
+      opacity: 1;
+      border-color: var(--success);
+    }
+
+    .step-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .step-item.active .step-icon {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--primary);
+    }
+
+    .step-item.completed .step-icon {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    /* Results layout */
+    .results-grid {
+      display: none;
+      grid-template-columns: 1fr;
+      gap: 30px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    @media (min-width: 768px) {
+      .results-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    .report-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .report-card h1, .report-card h2, .report-card h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .report-card h1 { font-size: 1.8rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; }
+    .report-card h2 { font-size: 1.4rem; }
+    .report-card h3 { font-size: 1.1rem; }
+
+    .report-card p {
+      margin-bottom: 16px;
+      color: #e5e7eb;
+    }
+
+    .report-card ul, .report-card ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+      color: #e5e7eb;
+    }
+
+    .report-card blockquote {
+      border-left: 4px solid var(--primary);
+      padding-left: 16px;
+      font-style: italic;
+      color: var(--text-muted);
+      margin: 16px 0;
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .audit-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .audit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .audit-item {
+      background: rgba(17, 24, 39, 0.4);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .audit-item:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+    }
+
+    .audit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .agent-name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .tx-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      color: var(--success);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .tx-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s ease;
+      word-break: break-all;
+    }
+
+    .tx-link:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    /* Animations */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">
+          <i data-lucide="network"></i>
+        </div>
+        <h1>ResearchMesh</h1>
+      </div>
+      <p class="subtitle">On-Chain Paid Multi-Agent Research Portal</p>
+    </header>
+
+    <main>
+      <!-- Search Input Section -->
+      <section class="search-panel">
+        <div class="input-group">
+          <input type="text" id="query-input" placeholder="What would you like to research today?" value="latest news on Algorand x402">
+          <button id="search-btn" onclick="startResearch()">
+            <span>Research</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- Loading Step Indicators -->
+      <section class="loading-container" id="loading-container">
+        <div class="spinner">
+          <div class="spinner-circle"></div>
+          <div class="spinner-inner">
+            <i data-lucide="cpu" class="lucide-spin" style="color: var(--primary);"></i>
+          </div>
+        </div>
+        
+        <div class="step-list">
+          <div class="step-item" id="step-0">
+            <div class="step-icon"><i data-lucide="search"></i></div>
+            <span>Triggering paid Tavily Search Agent...</span>
+          </div>
+          <div class="step-item" id="step-1">
+            <div class="step-icon"><i data-lucide="shield-alert"></i></div>
+            <span>Triggering paid Fact-Checker Agent...</span>
+          </div>
+          <div class="step-item" id="step-2">
+            <div class="step-icon"><i data-lucide="file-text"></i></div>
+            <span>Triggering paid Summarizer Agent...</span>
+          </div>
+          <div class="step-item" id="step-3">
+            <div class="step-icon"><i data-lucide="sparkles"></i></div>
+            <span>Synthesizing final verified report...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Grid -->
+      <section class="results-grid" id="results-grid">
+        <!-- Main Report -->
+        <div class="report-card" id="report-content">
+          <!-- Markdown parsed report goes here -->
+        </div>
+
+        <!-- Sidebar Audit Log -->
+        <div class="side-panel">
+          <div class="audit-card">
+            <div class="card-title">
+              <i data-lucide="receipt" style="color: var(--primary);"></i>
+              <span>Payment Audit Trail</span>
+            </div>
+            
+            <div class="audit-list" id="audit-list">
+              <!-- Payment items go here -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Map of agents to payment amounts for nice visuals
+    const agentPrices = {
+      "Search Agent": "$0.01",
+      "Fact-Checker Agent": "$0.005",
+      "Summarizer Agent": "$0.005"
+    };
+
+    async function startResearch() {
+      const query = document.getElementById("query-input").value.trim();
+      if (!query) return;
+
+      const searchBtn = document.getElementById("search-btn");
+      const loadingContainer = document.getElementById("loading-container");
+      const resultsGrid = document.getElementById("results-grid");
+
+      // Reset UI state
+      searchBtn.disabled = true;
+      resultsGrid.style.display = "none";
+      loadingContainer.style.display = "flex";
+      
+      // Reset steps
+      for (let i = 0; i < 4; i++) {
+        const step = document.getElementById(`step-${i}`);
+        step.className = "step-item";
+        const icon = step.querySelector('.step-icon i');
+        icon.setAttribute('data-lucide', i === 0 ? 'search' : i === 1 ? 'shield-alert' : i === 2 ? 'file-text' : 'sparkles');
+      }
+      lucide.createIcons();
+
+      // Trigger sequence monitoring
+      setStepActive(0);
+
+      // We simulate step transitions matching typical block times, but route completes in ~15s.
+      const stepIntervals = [
+        setTimeout(() => setStepCompleted(0, 1), 4000), // Search done, trigger Fact-checker
+        setTimeout(() => setStepCompleted(1, 2), 8000), // Fact-checker done, trigger Summarizer
+        setTimeout(() => setStepCompleted(2, 3), 12000), // Summarizer done, trigger Synthesis
+      ];
+
+      try {
+        const response = await fetch("http://localhost:4020/research", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Clear timeouts and complete all loading steps immediately
+        stepIntervals.forEach(clearTimeout);
+        for (let i = 0; i < 4; i++) {
+          setStepCompleted(i);
+        }
+
+        setTimeout(() => {
+          loadingContainer.style.display = "none";
+          renderResults(data);
+          searchBtn.disabled = false;
+        }, 800);
+
+      } catch (error) {
+        console.error("Research failed:", error);
+        stepIntervals.forEach(clearTimeout);
+        alert("Failed to complete research flow: " + error.message);
+        searchBtn.disabled = false;
+        loadingContainer.style.display = "none";
+      }
+    }
+
+    function setStepActive(index) {
+      const step = document.getElementById(`step-${index}`);
+      if (step) {
+        step.classList.add("active");
+      }
+    }
+
+    function setStepCompleted(index, nextIndex = null) {
+      const step = document.getElementById(`step-${index}`);
+      if (step) {
+        step.classList.remove("active");
+        step.classList.add("completed");
+        const icon = step.querySelector('.step-icon i');
+        icon.setAttribute('data-lucide', 'check');
+        lucide.createIcons();
+      }
+      if (nextIndex !== null) {
+        setStepActive(nextIndex);
+      }
+    }
+
+    function renderResults(data) {
+      const reportDiv = document.getElementById("report-content");
+      const auditList = document.getElementById("audit-list");
+
+      // Parse markdown report
+      reportDiv.innerHTML = marked.parse(data.report);
+
+      // Render payment trail
+      auditList.innerHTML = "";
+      data.payments.forEach(payment => {
+        const amount = agentPrices[payment.worker] || "$0.005";
+        
+        const item = document.createElement("div");
+        item.className = "audit-item";
+        
+        item.innerHTML = `
+          <div class="audit-header">
+            <span class="agent-name">${payment.worker}</span>
+            <span class="tx-badge">${amount} USDC</span>
+          </div>
+          <a class="tx-link" href="https://lora.algokit.io/testnet/transaction/${payment.txId}" target="_blank">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+            <span>${payment.txId.substring(0, 8)}...${payment.txId.substring(payment.txId.length - 8)}</span>
+          </a>
+        `;
+        
+        auditList.appendChild(item);
+      });
+
+      // Rerender icons in dynamic content
+      lucide.createIcons();
+
+      // Show results grid
+      const resultsGrid = document.getElementById("results-grid");
+      resultsGrid.style.display = "grid";
+    }
+  </script>
+</body>
+</html>
