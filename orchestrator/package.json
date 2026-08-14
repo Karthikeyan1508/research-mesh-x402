@@ -1,0 +1,20 @@
+{
+  "name": "@research-mesh/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "@x402/core": "^2.22.0",
+    "@x402/avm": "^2.22.0",
+    "@x402/fetch": "^2.22.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0"
+  }
+}

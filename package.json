@@ -1,0 +1,14 @@
+{
+  "name": "research-mesh",
+  "private": true,
+  "workspaces": [
+    "orchestrator",
+    "workers/search-agent",
+    "workers/summarizer-agent",
+    "workers/fact-checker-agent"
+  ],
+  "dependencies": {
+    "algosdk": "^3.6.0",
+    "dotenv": "^17.4.2"
+  }
+}
