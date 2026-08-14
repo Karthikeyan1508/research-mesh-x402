@@ -543,12 +543,13 @@
       resultsGrid.style.display = "none";
       loadingContainer.style.display = "flex";
       
-      // Reset steps
+      // Reset steps — replace icon container innerHTML so we always start from a fresh <i> tag
+      // (lucide replaces <i> with <svg> on first render, so querySelector('.step-icon i') would be null)
+      const stepIcons = ['search', 'shield-alert', 'file-text', 'sparkles'];
       for (let i = 0; i < 4; i++) {
         const step = document.getElementById(`step-${i}`);
         step.className = "step-item";
-        const icon = step.querySelector('.step-icon i');
-        icon.setAttribute('data-lucide', i === 0 ? 'search' : i === 1 ? 'shield-alert' : i === 2 ? 'file-text' : 'sparkles');
+        step.querySelector('.step-icon').innerHTML = `<i data-lucide="${stepIcons[i]}"></i>`;
       }
       lucide.createIcons();
 
@@ -608,8 +609,8 @@
       if (step) {
         step.classList.remove("active");
         step.classList.add("completed");
-        const icon = step.querySelector('.step-icon i');
-        icon.setAttribute('data-lucide', 'check');
+        // Replace the icon container innerHTML so we always get a fresh <i> tag
+        step.querySelector('.step-icon').innerHTML = '<i data-lucide="check"></i>';
         lucide.createIcons();
       }
       if (nextIndex !== null) {
