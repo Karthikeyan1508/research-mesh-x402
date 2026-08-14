@@ -44,6 +44,7 @@ app.use(
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/summarize", async (req, res) => {
   const text = String(req.body.text || req.query.text || "");
+  console.log(`[summarizer-agent] /summarize request received, text length: ${text.length}`);
   if (!text) {
     res.status(400).json({ error: "Missing text parameter" });
     return;
@@ -51,6 +52,7 @@ app.post("/summarize", async (req, res) => {
 
   try {
     const summary = await callGemini('Summarize this in 3-4 sentences: ' + text);
+    console.log(`[summarizer-agent] /summarize success, summary length: ${summary.length}`);
     res.json({ summary });
   } catch (error: any) {
     console.error("[summarizer-agent] Gemini call failed:", error.message);

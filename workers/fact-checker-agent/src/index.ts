@@ -44,6 +44,7 @@ app.use(
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/verify", async (req, res) => {
   const claim = String(req.body.claim || req.query.claim || "");
+  console.log(`[fact-checker-agent] /verify request received for claim: "${claim}"`);
   if (!claim) {
     res.status(400).json({ error: "Missing claim parameter" });
     return;
@@ -54,6 +55,7 @@ Claim: ${claim}`;
 
   try {
     const rawResult = await callGemini(prompt);
+    console.log(`[fact-checker-agent] Gemini call success: ${rawResult}`);
     let parsedResult;
     try {
       const cleanJson = rawResult.replace(/```json/g, "").replace(/```/g, "").trim();
