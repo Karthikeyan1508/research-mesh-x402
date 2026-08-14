@@ -58,16 +58,35 @@ app.get("/search", async (req, res) => {
 });
 
 async function mockSearch(query: string) {
-  // TODO: replace with a real call to Tavily (https://tavily.com) or SerpAPI once
-  // the payment flow is confirmed working. Keep the interface the same:
-  // return an array of { title, snippet, url }.
-  return [
-    {
-      title: `Placeholder result for "${query}"`,
-      snippet: "Swap mockSearch() for a real Tavily/SerpAPI call here.",
-      url: "https://example.com",
+  if (!process.env.TAVILY_API_KEY) {
+    console.warn("[search-agent] TAVILY_API_KEY is not configured — falling back to mock results.");
+    return [
+      {
+        title: `Placeholder result for "${query}"`,
+        snippet: "Swap mockSearch() for a real Tavily/SerpAPI call here. Set TAVILY_API_KEY to get real results.",
+        url: "https://example.com",
+      },
+    ];
+  }
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.TAVILY_API_KEY}`,
     },
-  ];
+    body: JSON.stringify({
+      query,
+      max_results: 5,
+      search_depth: "basic",
+    }),
+  });
+  if (!response.ok) throw new Error(`Tavily API error: ${response.status}`);
+  const data = await response.json();
+  return data.results.map((r: any) => ({
+    title: r.title,
+    snippet: r.content,
+    url: r.url,
+  }));
 }
 
 app.listen(PORT, () => {
