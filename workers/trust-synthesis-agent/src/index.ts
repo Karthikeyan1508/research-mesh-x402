@@ -144,6 +144,39 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
   throw new Error("Failed to call Gemini API after retries");
 }
 
+async function registerService() {
+  const routeKey = "POST /synthesize";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const response = await fetch("http://localhost:4025/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://localhost:${PORT}/synthesize`,
+        tags: ["synthesis"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { text: "string", verification: "any", verificationMethod: "string" },
+          output: {
+            summary: "string",
+            trustScore: "number",
+            verificationMethod: "string"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      console.log(`[trust-synthesis-agent] Successfully registered to Local Bazaar Registry`);
+    } else {
+      console.warn(`[trust-synthesis-agent] Registration failed: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.warn(`[trust-synthesis-agent] Registry registration failed: ${err.message}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[trust-synthesis-agent] listening on :${PORT} — POST /synthesize is x402-gated at $0.005`);
+  registerService();
 });

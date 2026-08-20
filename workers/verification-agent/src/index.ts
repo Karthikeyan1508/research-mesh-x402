@@ -155,6 +155,40 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
   throw new Error("Failed to call Gemini API after retries");
 }
 
+async function registerService() {
+  const routeKey = "POST /verify";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const response = await fetch("http://localhost:4025/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://localhost:${PORT}/verify`,
+        tags: ["verification"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { claim: "string", provenance: "any" },
+          output: {
+            verdict: "string",
+            confidence: "number",
+            reasoning: "string",
+            evidence: "any"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      console.log(`[verification-agent] Successfully registered to Local Bazaar Registry`);
+    } else {
+      console.warn(`[verification-agent] Registration failed: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.warn(`[verification-agent] Registry registration failed: ${err.message}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[verification-agent] listening on :${PORT} — POST /verify is x402-gated at $0.005`);
+  registerService();
 });
