@@ -45,14 +45,47 @@ app.use(
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/verify", async (req, res) => {
   const claim = String(req.body.claim || req.query.claim || "");
+  const provenance = req.body.provenance;
   console.log(`[verification-agent] /verify request received for claim: "${claim}"`);
   if (!claim) {
     res.status(400).json({ error: "Missing claim parameter" });
     return;
   }
 
-  const prompt = `Verify this claim and respond ONLY with a valid JSON object (no markdown block, no code formatting, no extra text) containing the keys "verdict" (must be "True", "False", or "Unverified"), "confidence" (integer 0-100), and "reasoning" (string details).
-Claim: ${claim}`;
+  let prompt = "";
+  const isCrypto = provenance && provenance.verificationMethod === "cryptographic";
+
+  if (isCrypto) {
+    console.log("[verification-agent] Using cryptographic manifest verification prompt...");
+    prompt = `You are a C2PA Content Credentials auditor. Verify whether the claim is consistent with the cryptographically signed C2PA manifest metadata extracted from the image.
+Claim: "${claim}"
+C2PA Manifest Data: ${JSON.stringify(provenance.results, null, 2)}
+
+Instructions:
+1. Determine if the claim (e.g. regarding creator, AI generation, tools used, edits) matches the manifest metadata.
+2. If the claim implies the photo is direct/unedited, but the manifest editHistory is not empty or contains actions other than "c2pa.created", that is a contradiction.
+3. If the manifest proves the claim is false/contradicted, return verdict "False" (or "Contradicted").
+4. If it matches, return verdict "True" (or "Confirmed True").
+5. If the manifest doesn't contain information to verify, return verdict "Unverified".
+
+Respond ONLY with a valid JSON object (no markdown formatting, no code tags, no extra text) containing keys:
+- "verdict": "True", "False", or "Unverified"
+- "confidence": integer (0 to 100)
+- "reasoning": detailed reason referencing the manifest
+- "evidence": JSON object containing the relevant manifest key-values used (e.g. { creator, isAIGenerated, editHistory })`;
+  } else {
+    console.log("[verification-agent] Using inferred Tavily search results verification prompt...");
+    const searchResults = provenance?.results || [];
+    prompt = `Verify whether this claim is true based on the provided search results.
+Claim: "${claim}"
+Search Results: ${JSON.stringify(searchResults, null, 2)}
+
+Respond ONLY with a valid JSON object (no markdown formatting, no code tags, no extra text) containing keys:
+- "verdict": "True", "False", or "Unverified"
+- "confidence": integer (0 to 100)
+- "reasoning": detailed explanation with citations of search results
+- "evidence": array of cited source URLs (strings) used to verify/refute the claim`;
+  }
 
   try {
     const rawResult = await callGemini(prompt);
@@ -65,16 +98,18 @@ Claim: ${claim}`;
       parsedResult = {
         verdict: "Unverified",
         confidence: 50,
-        reasoning: rawResult
+        reasoning: rawResult,
+        evidence: isCrypto ? {} : []
       };
     }
     res.json(parsedResult);
   } catch (error: any) {
     console.error("[verification-agent] Gemini call failed:", error.message);
     const mockFallback = {
-      verdict: "True",
-      confidence: 95,
-      reasoning: `[Mock Verification Fallback] The claim "${claim}" was analyzed against mock reference data and appears verified. Multi-agent paid research flow works as expected.`
+      verdict: isCrypto ? "False" : "True",
+      confidence: 90,
+      reasoning: `[Mock Verification Fallback] Failed to call Gemini. Claim: "${claim}".`,
+      evidence: isCrypto ? { isAIGenerated: false, editHistory: ["c2pa.created"] } : []
     };
     res.json(mockFallback);
   }

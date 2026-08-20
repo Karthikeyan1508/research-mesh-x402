@@ -24,6 +24,9 @@ type PaymentLogEntry = {
 type ResearchResult = {
   report: string;
   payments: PaymentLogEntry[];
+  trustScore?: number;
+  verificationMethod?: string;
+  verification?: any;
 };
 
 function buildClient() {
@@ -189,7 +192,10 @@ async function executeResearch(query: string): Promise<ResearchResult> {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ claim: claimToVerify }),
+      body: JSON.stringify({
+        claim: claimToVerify,
+        provenance: searchResult
+      }),
     }
   );
   console.log(`[orchestrator] Verification Agent responded:`, verifyResult);
@@ -201,7 +207,11 @@ async function executeResearch(query: string): Promise<ResearchResult> {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: resultsText }),
+      body: JSON.stringify({
+        text: resultsText,
+        verification: verifyResult,
+        verificationMethod: searchResult.verificationMethod
+      }),
     }
   );
   console.log(`[orchestrator] Trust Synthesis Agent responded:`, summarizeResult);
@@ -211,6 +221,7 @@ async function executeResearch(query: string): Promise<ResearchResult> {
   const reportPrompt = `Create a final synthesized research report for query "${query}" based on the following resources:
 - Summary of Search: ${summarizeResult.summary}
 - Fact-Check Verdict for "${claimToVerify}": ${verifyResult.verdict} (Confidence: ${verifyResult.confidence}%, Reasoning: ${verifyResult.reasoning})
+- Trust Score: ${summarizeResult.trustScore}/100 (${summarizeResult.verificationMethod === 'cryptographic' ? 'Cryptographically Verified' : 'AI-Inferred Verification'})
 
 Format the report beautifully with markdown, including clear headings and citations.`;
 
@@ -223,6 +234,7 @@ ${summarizeResult.summary}
 - **Claim**: ${claimToVerify}
 - **Verdict**: **${verifyResult.verdict}** (${verifyResult.confidence}% confidence)
 - **Details**: ${verifyResult.reasoning}
+- **Trust Score**: **${summarizeResult.trustScore}/100** (${summarizeResult.verificationMethod === 'cryptographic' ? 'Cryptographically Verified' : 'AI-Inferred Verification'})
 
 *Report compiled by TrustMesh using on-chain gated services.*`;
 
@@ -230,7 +242,10 @@ ${summarizeResult.summary}
 
   return {
     report: finalReport,
-    payments: localPayments
+    payments: localPayments,
+    trustScore: summarizeResult.trustScore,
+    verificationMethod: summarizeResult.verificationMethod,
+    verification: verifyResult
   };
 }
 
