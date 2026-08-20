@@ -1,5 +1,5 @@
 {
-  "name": "@research-mesh/search-agent",
+  "name": "@trustmesh/trust-synthesis-agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",

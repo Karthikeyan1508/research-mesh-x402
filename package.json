@@ -1,11 +1,11 @@
 {
-  "name": "research-mesh",
+  "name": "trust-mesh",
   "private": true,
   "workspaces": [
     "orchestrator",
-    "workers/search-agent",
-    "workers/summarizer-agent",
-    "workers/fact-checker-agent"
+    "workers/provenance-agent",
+    "workers/trust-synthesis-agent",
+    "workers/verification-agent"
   ],
   "dependencies": {
     "algosdk": "^3.6.0",

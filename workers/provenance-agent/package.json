@@ -1,5 +1,5 @@
 {
-  "name": "@research-mesh/summarizer-agent",
+  "name": "@trustmesh/provenance-agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",

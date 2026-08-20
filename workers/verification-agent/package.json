@@ -1,5 +1,5 @@
 {
-  "name": "@research-mesh/fact-checker-agent",
+  "name": "@trustmesh/verification-agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
