@@ -1,4 +1,4 @@
-// Provenance Agent — an x402-gated endpoint that returns web search results per paid call.
+// Provenance Agent — an x402-gated endpoint that returns web search results or content credentials per paid call.
 //
 // This is the FIRST thing to get working end-to-end. If `curl` against /provenance returns
 // 402 without payment, and 200 with a valid X-PAYMENT header, the core loop is proven —
@@ -16,6 +16,7 @@ import { paymentMiddleware } from "@x402/express";
 import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactAvmScheme } from "@x402/avm/exact/server";
 import { ALGORAND_TESTNET_CAIP2, USDC_TESTNET_ASA_ID } from "@x402/avm";
+import { createC2pa } from 'c2pa-node';
 
 const app = express();
 app.use(express.json());
@@ -52,11 +53,115 @@ app.use(
   paymentMiddleware(routes, server)
 );
 
+function isImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.toLowerCase();
+    return pathname.endsWith('.jpg') ||
+           pathname.endsWith('.jpeg') ||
+           pathname.endsWith('.png') ||
+           pathname.endsWith('.webp') ||
+           pathname.endsWith('.tiff') ||
+           pathname.endsWith('.dng') ||
+           pathname.endsWith('.gif');
+  } catch {
+    return false;
+  }
+}
+
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/provenance", async (req, res) => {
   const query = String(req.body.query || req.body.q || req.query.q || "");
-  const results = await mockSearch(query);
-  res.json({ query, results });
+  console.log(`[provenance-agent] /provenance request received, query: "${query}"`);
+  if (!query) {
+    res.status(400).json({ error: "Missing query/q parameter" });
+    return;
+  }
+
+  if (isImageUrl(query)) {
+    try {
+      console.log(`[provenance-agent] Image URL detected. Attempting to download: ${query}`);
+      const fetchResp = await fetch(query);
+      if (!fetchResp.ok) {
+        throw new Error(`Failed to download image: ${fetchResp.status} ${fetchResp.statusText}`);
+      }
+      const arrayBuffer = await fetchResp.arrayBuffer();
+      const imageBuffer = Buffer.from(arrayBuffer);
+
+      // Determine mimeType
+      const parsedUrl = new URL(query);
+      const ext = parsedUrl.pathname.split('.').pop()?.toLowerCase() || '';
+      let mimeType = 'image/jpeg';
+      if (ext === 'png') mimeType = 'image/png';
+      else if (ext === 'webp') mimeType = 'image/webp';
+      else if (ext === 'dng') mimeType = 'image/dng';
+      else if (ext === 'tiff') mimeType = 'image/tiff';
+
+      console.log(`[provenance-agent] Validating C2PA manifest for image (${mimeType})...`);
+      const c2pa = createC2pa();
+      const manifestStore = await c2pa.read({
+        buffer: imageBuffer,
+        mimeType: mimeType
+      });
+
+      if (manifestStore && manifestStore.active_manifest) {
+        const activeManifest = manifestStore.active_manifest;
+        console.log(`[provenance-agent] Valid C2PA manifest found: "${activeManifest.title}"`);
+
+        // Extract creator
+        let creator = "Unknown";
+        const creativeWorkAssertion = activeManifest.assertions?.find(a => 
+          a.label === 'stds.schema-org.CreativeWork' || a.label === 'st.schema.creativework'
+        );
+        if (creativeWorkAssertion?.data?.author?.[0]?.name) {
+          creator = creativeWorkAssertion.data.author[0].name;
+        } else if (activeManifest.signature_info?.issuer) {
+          creator = activeManifest.signature_info.issuer;
+        }
+
+        // Extract edit history actions
+        const actionsAssertion = activeManifest.assertions?.find(a => a.label === 'c2pa.actions');
+        const editHistory = actionsAssertion?.data?.actions?.map((act: any) => act.action) || [];
+
+        // Detect AI generation
+        const isAI = /ai|generative|synthetic|firefly|dall-e|midjourney|openai|stable-diffusion/i.test(activeManifest.claim_generator || '') ||
+                     actionsAssertion?.data?.actions?.some((act: any) => /synthetic|ai|generative/i.test(act.action || '')) || false;
+
+        res.json({
+          query,
+          verificationMethod: "cryptographic",
+          results: {
+            title: activeManifest.title || "Image",
+            creator,
+            claimGenerator: activeManifest.claim_generator || "Unknown",
+            signatureIssuer: activeManifest.signature_info?.issuer || "Unknown",
+            signatureTime: activeManifest.signature_info?.time || "Unknown",
+            isAIGenerated: isAI,
+            editHistory
+          }
+        });
+        return;
+      } else {
+        console.log(`[provenance-agent] No C2PA manifest found in image. Falling back to Tavily search...`);
+      }
+    } catch (err: any) {
+      console.warn(`[provenance-agent] C2PA validation failed: ${err.message}. Falling back to Tavily search...`);
+    }
+  }
+
+  // Fallback to Tavily search (inferred)
+  console.log(`[provenance-agent] Performing Tavily search for query: "${query}"`);
+  try {
+    const results = await mockSearch(query);
+    res.json({
+      query,
+      verificationMethod: "inferred",
+      results
+    });
+  } catch (err: any) {
+    console.error(`[provenance-agent] Search failed:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 async function mockSearch(query: string) {
