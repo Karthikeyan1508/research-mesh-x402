@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResearchMesh — Paid Multi-Agent Research Portal</title>
+  <title>TrustMesh — Paid Multi-Agent Trust Portal</title>
   <!-- Google Fonts: Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -449,18 +449,18 @@
         <div class="logo-icon">
           <i data-lucide="network"></i>
         </div>
-        <h1>ResearchMesh</h1>
+        <h1>TrustMesh</h1>
       </div>
-      <p class="subtitle">On-Chain Paid Multi-Agent Research Portal</p>
+      <p class="subtitle">On-Chain Paid Multi-Agent Trust Portal</p>
     </header>
 
     <main>
       <!-- Search Input Section -->
       <section class="search-panel">
         <div class="input-group">
-          <input type="text" id="query-input" placeholder="What would you like to research today?" value="latest news on Algorand x402">
-          <button id="search-btn" onclick="startResearch()">
-            <span>Research</span>
+          <input type="text" id="query-input" placeholder="What would you like to verify today?" value="latest news on Algorand x402">
+          <button id="search-btn" onclick="startVerification()">
+            <span>Verify</span>
             <i data-lucide="arrow-right"></i>
           </button>
         </div>
@@ -478,15 +478,15 @@
         <div class="step-list">
           <div class="step-item" id="step-0">
             <div class="step-icon"><i data-lucide="search"></i></div>
-            <span>Triggering paid Tavily Search Agent...</span>
+            <span>Triggering paid Provenance Agent...</span>
           </div>
           <div class="step-item" id="step-1">
             <div class="step-icon"><i data-lucide="shield-alert"></i></div>
-            <span>Triggering paid Fact-Checker Agent...</span>
+            <span>Triggering paid Verification Agent...</span>
           </div>
           <div class="step-item" id="step-2">
             <div class="step-icon"><i data-lucide="file-text"></i></div>
-            <span>Triggering paid Summarizer Agent...</span>
+            <span>Triggering paid Trust Synthesis Agent...</span>
           </div>
           <div class="step-item" id="step-3">
             <div class="step-icon"><i data-lucide="sparkles"></i></div>
@@ -525,12 +525,12 @@
 
     // Map of agents to payment amounts for nice visuals
     const agentPrices = {
-      "Search Agent": "$0.01",
-      "Fact-Checker Agent": "$0.005",
-      "Summarizer Agent": "$0.005"
+      "Provenance Agent": "$0.01",
+      "Verification Agent": "$0.005",
+      "Trust Synthesis Agent": "$0.005"
     };
 
-    async function startResearch() {
+    async function startVerification() {
       const query = document.getElementById("query-input").value.trim();
       if (!query) return;
 
@@ -589,9 +589,9 @@
         }, 800);
 
       } catch (error) {
-        console.error("Research failed:", error);
+        console.error("Verification failed:", error);
         stepIntervals.forEach(clearTimeout);
-        alert("Failed to complete research flow: " + error.message);
+        alert("Failed to complete verification flow: " + error.message);
         searchBtn.disabled = false;
         loadingContainer.style.display = "none";
       }

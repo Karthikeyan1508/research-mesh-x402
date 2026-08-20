@@ -1,6 +1,6 @@
-// Search Agent — an x402-gated endpoint that returns web search results per paid call.
+// Provenance Agent — an x402-gated endpoint that returns web search results per paid call.
 //
-// This is the FIRST thing to get working end-to-end. If `curl` against /search returns
+// This is the FIRST thing to get working end-to-end. If `curl` against /provenance returns
 // 402 without payment, and 200 with a valid X-PAYMENT header, the core loop is proven —
 // everything else in this project (Summarizer, Fact-Checker, orchestrator, frontend)
 // is a repeat of this same pattern.
@@ -18,22 +18,23 @@ import { ExactAvmScheme } from "@x402/avm/exact/server";
 import { ALGORAND_TESTNET_CAIP2, USDC_TESTNET_ASA_ID } from "@x402/avm";
 
 const app = express();
+app.use(express.json());
 const PORT = Number(process.env.PORT) || 4021;
 
-if (!process.env.SEARCH_AGENT_ALGO_ADDRESS) {
+if (!process.env.PROVENANCE_AGENT_ALGO_ADDRESS) {
   console.warn(
-    "[search-agent] WARNING: SEARCH_AGENT_ALGO_ADDRESS is not set in .env — " +
+    "[provenance-agent] WARNING: PROVENANCE_AGENT_ALGO_ADDRESS is not set in .env — " +
       "payments have nowhere to settle. Set it before testing the payment flow."
   );
 }
 
 // --- 1. Declare which routes cost money, how much, and where payment goes ---
 const routes = {
-  "GET /search": {
+  "POST /provenance": {
     accepts: {
       scheme: "exact",
       network: "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
-      payTo: process.env.SEARCH_AGENT_ALGO_ADDRESS ?? "",
+      payTo: process.env.PROVENANCE_AGENT_ALGO_ADDRESS ?? "",
       price: "$0.01",
       extra: { asset: USDC_TESTNET_ASA_ID }, // pay in testnet USDC, not native ALGO
     },
@@ -44,22 +45,23 @@ const routes = {
 // --- 2. Wire up the facilitator + resource server that verify/settle payments ---
 const facilitatorClient = new HTTPFacilitatorClient({ url: process.env.FACILITATOR_URL });
 const server = new x402ResourceServer(facilitatorClient);
-server.register("algorand:*", new ExactAvmScheme());
+const serverScheme = new ExactAvmScheme();
+server.register("algorand:*", serverScheme);
 
 app.use(
   paymentMiddleware(routes, server)
 );
 
 // --- 3. The actual handler only runs once payment has settled ---
-app.get("/search", async (req, res) => {
-  const query = String(req.query.q ?? "");
+app.post("/provenance", async (req, res) => {
+  const query = String(req.body.query || req.body.q || req.query.q || "");
   const results = await mockSearch(query);
   res.json({ query, results });
 });
 
 async function mockSearch(query: string) {
   if (!process.env.TAVILY_API_KEY) {
-    console.warn("[search-agent] TAVILY_API_KEY is not configured — falling back to mock results.");
+    console.warn("[provenance-agent] TAVILY_API_KEY is not configured — falling back to mock results.");
     return [
       {
         title: `Placeholder result for "${query}"`,
@@ -90,5 +92,5 @@ async function mockSearch(query: string) {
 }
 
 app.listen(PORT, () => {
-  console.log(`[search-agent] listening on :${PORT} — GET /search is x402-gated at $0.01`);
+  console.log(`[provenance-agent] listening on :${PORT} — POST /provenance is x402-gated at $0.01`);
 });

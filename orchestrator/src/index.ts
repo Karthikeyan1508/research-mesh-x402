@@ -161,15 +161,18 @@ async function executeResearch(query: string): Promise<ResearchResult> {
     return response.json();
   };
 
-  // 1. Call Search Agent (Paid)
+  // 1. Call Provenance Agent (Paid)
   const searchResult = await localCallWorker(
-    "Search Agent",
-    `${process.env.SEARCH_AGENT_URL ?? "http://localhost:4021"}/search?q=${encodeURIComponent(
-      query
-    )}`
+    "Provenance Agent",
+    `${process.env.PROVENANCE_AGENT_URL ?? "http://localhost:4021"}/provenance`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    }
   );
 
-  console.log("[orchestrator] Search Agent responded with results.");
+  console.log("[orchestrator] Provenance Agent responded with results.");
 
   const resultsText = JSON.stringify(searchResult.results);
 
@@ -179,29 +182,29 @@ async function executeResearch(query: string): Promise<ResearchResult> {
   const claimToVerify = await runLLM(claimPrompt, mockClaim);
   console.log(`[orchestrator] Extracted claim to verify: "${claimToVerify}"`);
 
-  // 3. Call Fact-Checker Agent (Paid)
+  // 3. Call Verification Agent (Paid)
   const verifyResult = await localCallWorker(
-    "Fact-Checker Agent",
-    `${process.env.FACT_CHECKER_AGENT_URL ?? "http://localhost:4023"}/verify`,
+    "Verification Agent",
+    `${process.env.VERIFICATION_AGENT_URL ?? "http://localhost:4023"}/verify`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ claim: claimToVerify }),
     }
   );
-  console.log(`[orchestrator] Fact-Checker Agent responded:`, verifyResult);
+  console.log(`[orchestrator] Verification Agent responded:`, verifyResult);
 
-  // 4. Call Summarizer Agent (Paid)
+  // 4. Call Trust Synthesis Agent (Paid)
   const summarizeResult = await localCallWorker(
-    "Summarizer Agent",
-    `${process.env.SUMMARIZER_AGENT_URL ?? "http://localhost:4022"}/summarize`,
+    "Trust Synthesis Agent",
+    `${process.env.TRUST_SYNTHESIS_AGENT_URL ?? "http://localhost:4022"}/synthesize`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: resultsText }),
     }
   );
-  console.log(`[orchestrator] Summarizer Agent responded:`, summarizeResult);
+  console.log(`[orchestrator] Trust Synthesis Agent responded:`, summarizeResult);
 
   // 5. Synthesize final report using LLM
   console.log("[orchestrator] Synthesizing final report...");
@@ -221,7 +224,7 @@ ${summarizeResult.summary}
 - **Verdict**: **${verifyResult.verdict}** (${verifyResult.confidence}% confidence)
 - **Details**: ${verifyResult.reasoning}
 
-*Report compiled by ResearchMesh using on-chain gated services.*`;
+*Report compiled by TrustMesh using on-chain gated services.*`;
 
   const finalReport = await runLLM(reportPrompt, fallbackReport);
 
@@ -261,7 +264,7 @@ async function main() {
     });
   } else {
     const query = process.argv[2];
-    console.log(`\nResearchMesh (CLI Mode) — researching: "${query}"\n`);
+    console.log(`\nTrustMesh (CLI Mode) — researching: "${query}"\n`);
     try {
       const result = await executeResearch(query);
       console.log("\n========================================================");
