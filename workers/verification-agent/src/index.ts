@@ -123,7 +123,7 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,

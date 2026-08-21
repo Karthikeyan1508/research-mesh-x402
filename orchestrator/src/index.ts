@@ -27,6 +27,8 @@ type ResearchResult = {
   trustScore?: number;
   verificationMethod?: string;
   verification?: any;
+  translationStatus?: "completed" | "skipped" | "failed";
+  translationError?: string;
 };
 
 type DiscoveryResource = {
@@ -80,8 +82,10 @@ function selectBestAgent(candidates: DiscoveryResource[], fallbackUrl: string): 
 
   const scored = candidates.map(c => {
     const url = c.resourceUrl;
-    const priceString = c.accepts?.[0]?.amount || "10000";
-    const price = Number(priceString) || 10000;
+    // Bazaar uses price: "$0.005" — strip the $ sign and parse to float, then scale to cents
+    const rawPrice = c.accepts?.[0]?.price ?? c.accepts?.[0]?.amount ?? "10000";
+    const priceFloat = parseFloat(String(rawPrice).replace(/[^0-9.]/g, ''));
+    const price = isNaN(priceFloat) ? 10000 : Math.round(priceFloat * 1000); // scale to integer for scoring
 
     const rep = reputationTracker.get(url);
     let successRate = 1.0;
@@ -345,7 +349,11 @@ async function executeResearch(query: string, translateTo?: string): Promise<Res
 
   // 6. Dynamic translation step (Paid)
   let reportText = finalReport;
+  let translationStatus: "completed" | "skipped" | "failed" = "skipped";
+  let translationError: string | undefined = undefined;
+
   if (translateTo) {
+    translationStatus = "failed"; // default to failed if requested but not finished
     console.log(`[orchestrator] Translation requested to language: "${translateTo}"`);
     const translationCandidates = await discoverAgent("translation");
     if (translationCandidates.length > 0) {
@@ -369,13 +377,20 @@ async function executeResearch(query: string, translateTo?: string): Promise<Res
           updateReputation(translationUrl, Date.now() - startTimeTranslate, true);
           if (translationResult.translatedText) {
             reportText = translationResult.translatedText;
+            translationStatus = "completed";
+          } else {
+            translationError = "Translation agent returned empty response";
           }
         } catch (err: any) {
           updateReputation(translationUrl, Date.now() - startTimeTranslate, false);
+          translationError = err.message;
           console.warn(`[orchestrator] Dynamic Translation Agent failed: ${err.message}. Returning untranslated report as fallback.`);
         }
+      } else {
+        translationError = "No translation agent URL resolved";
       }
     } else {
+      translationError = "No translation agent registered in Bazaar registry";
       console.log(`[orchestrator] No Translation Agent registered in Bazaar. Skipping translation.`);
     }
   }
@@ -385,7 +400,9 @@ async function executeResearch(query: string, translateTo?: string): Promise<Res
     payments: localPayments,
     trustScore: summarizeResult.trustScore,
     verificationMethod: summarizeResult.verificationMethod,
-    verification: verifyResult
+    verification: verifyResult,
+    translationStatus,
+    translationError
   };
 }
 

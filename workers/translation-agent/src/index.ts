@@ -4,12 +4,12 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactAvmScheme } from "@x402/avm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { USDC_TESTNET_ASA_ID, ALGORAND_TESTNET_CAIP2 } from "@x402/avm";
 
 const app = express();
 app.use(express.json());
 
 const PORT = Number(process.env.PORT) || 4024;
-const USDC_TESTNET_ASA_ID = "31566704"; // USDC Testnet ASA ID
 
 const facilitatorClient = new HTTPFacilitatorClient({
   url: process.env.FACILITATOR_URL || "https://facilitator.goplausible.xyz"
