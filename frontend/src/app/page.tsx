@@ -3,8 +3,8 @@
 import { useState, useRef, FormEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ResultsPanel } from "@/components/results-panel";
+import { OrchestrationSidebar } from "@/components/orchestration-sidebar";
 
 const ORCHESTRATOR_URL =
   process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? "http://localhost:4020";
@@ -12,7 +12,7 @@ const ORCHESTRATOR_URL =
 /* ── Loading dots ────────────────────────────────────────────────── */
 function LoadingDots() {
   return (
-    <div className="flex items-center gap-1.5 py-16 justify-center" aria-label="Loading">
+    <div className="flex items-center gap-1.5 py-8 justify-center" aria-label="Loading">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
@@ -88,7 +88,7 @@ export default function Home() {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 tm-glass border-b border-white/[0.06]">
-        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
+        <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-4 flex items-center justify-between">
           {/* Wordmark */}
           <div className="flex items-center gap-3">
             <div
@@ -112,80 +112,113 @@ export default function Home() {
             </span>
           </div>
 
-          <ThemeToggle />
+          {/* Server indicators */}
+          <div className="flex items-center gap-2.5 text-[9px] font-mono text-[var(--tm-on-surface-var)] tracking-wider uppercase font-bold">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <span>Facilitator connected</span>
+          </div>
         </div>
       </header>
 
-      {/* ── Hero ───────────────────────────────────────────────── */}
-      <main className="flex-1 mx-auto w-full max-w-3xl px-6 pt-20 pb-32 flex flex-col">
+      {/* ── Main Two-Column Layout ─────────────────────────────── */}
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-8 flex flex-col justify-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+          
+          {/* Left Column: Input and Results */}
+          <div className="flex flex-col gap-6 min-w-0">
+            {/* Title / Hero */}
+            <div className={`transition-all duration-500 ${result ? "text-left" : "text-center pt-8 pb-4"}`}>
+              {/* Eyebrow */}
+              <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] mb-2">
+                AI Content Provenance & Trust Verification
+              </p>
 
-        {/* Eyebrow */}
-        <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] mb-4 text-center">
-          AI Content Provenance & Trust Verification
-        </p>
+              {/* Display headline */}
+              <h1 className={`font-bold leading-tight tracking-tight text-[var(--tm-cream)] transition-all duration-500 ${
+                result ? "text-2xl mb-1" : "text-4xl sm:text-5xl mb-2"
+              }`} style={{ letterSpacing: "-0.02em" }}>
+                Verify. Trust.{" "}
+                <span style={{ color: "var(--tm-secondary)" }}>Confirm.</span>
+              </h1>
 
-        {/* Display headline */}
-        <h1 className="text-4xl sm:text-5xl font-bold text-center leading-tight tracking-tight text-[var(--tm-cream)] mb-3"
-          style={{ letterSpacing: "-0.02em" }}>
-          Verify. Trust.{" "}
-          <span style={{ color: "var(--tm-secondary)" }}>Confirm.</span>
-        </h1>
+              {!result && (
+                <p className="text-[var(--tm-on-surface-var)] text-sm leading-relaxed max-w-xl mx-auto mt-2">
+                  Submit any research query and TrustMesh's multi-agent pipeline will cryptographically verify provenance, check claims, and return a scored trust report — paying each agent in real time via x402.
+                </p>
+              )}
+            </div>
 
-        <p className="text-center text-[var(--tm-on-surface-var)] text-base leading-relaxed mb-12 max-w-xl mx-auto">
-          Submit any research query and TrustMesh's multi-agent pipeline will cryptographically verify provenance, check claims, and return a scored trust report — paying each agent in real time via x402.
-        </p>
+            {/* ── Query form ─────────────────────────────────────── */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white/[0.01] border border-white/[0.04] p-5 rounded-2xl tm-glass" id="research-form">
+              {/* Main query input */}
+              <div className="relative">
+                <Input
+                  id="query-input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="e.g. Verify Adobe Firefly image provenance…"
+                  className="tm-input h-14 text-base pr-36"
+                  disabled={loading}
+                  required
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  id="research-button"
+                  disabled={loading || !query.trim()}
+                  className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm"
+                >
+                  {loading ? "Researching…" : "Research →"}
+                </Button>
+              </div>
 
-        {/* ── Query form ─────────────────────────────────────── */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="research-form">
+              {/* Optional translation language */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="translate-to-input" className="text-[9px] font-bold tracking-widest text-[var(--tm-on-surface-var)] uppercase">
+                  Target Language (Optional)
+                </label>
+                <Input
+                  id="translate-to-input"
+                  value={translateTo}
+                  onChange={(e) => setTranslateTo(e.target.value)}
+                  placeholder="Translate results to… (e.g. Spanish, French, German)"
+                  className="tm-input h-11 text-sm"
+                  disabled={loading}
+                />
+              </div>
+            </form>
 
-          {/* Main query input */}
-          <div className="relative">
-            <Input
-              id="query-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. Verify Adobe Firefly image provenance…"
-              className="tm-input h-14 text-base pr-32"
-              disabled={loading}
-              required
-              autoFocus
-            />
-            <Button
-              type="submit"
-              id="research-button"
-              disabled={loading || !query.trim()}
-              className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-10 px-5 text-sm"
-            >
-              {loading ? "Researching…" : "Research →"}
-            </Button>
+            {/* ── Results area ───────────────────────────────────── */}
+            <div ref={resultsRef} className="min-w-0">
+              {error && <ErrorBanner message={error} />}
+              {result && !loading && (
+                <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
+              )}
+              {loading && !result && (
+                <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                  <LoadingDots />
+                  <p className="text-sm font-medium text-[var(--tm-on-surface-var)] animate-pulse tracking-wide uppercase text-[9px]">
+                    Consulting decentralized Bazaar agents...
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Optional translation language */}
-          <div className="flex items-center gap-3">
-            <Input
-              id="translate-to-input"
-              value={translateTo}
-              onChange={(e) => setTranslateTo(e.target.value)}
-              placeholder="Translate results to… (e.g. Spanish, French — optional)"
-              className="tm-input h-10 text-sm"
-              disabled={loading}
+          {/* Right Column: Active Orchestration Control Center */}
+          <div className={`transition-all duration-500 ${(loading || result) ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none hidden lg:block"}`}>
+            <OrchestrationSidebar
+              loading={loading}
+              hasTranslation={!!translateTo.trim()}
+              completedData={result}
             />
           </div>
-        </form>
 
-        {/* ── Results area ───────────────────────────────────── */}
-        <div ref={resultsRef} className="mt-12">
-          {loading && <LoadingDots />}
-          {error && <ErrorBanner message={error} />}
-          {result && !loading && (
-            <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
-          )}
         </div>
-
-      </main>
+      </div>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="text-center py-8 text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] border-t border-white/[0.04]">
+      <footer className="text-center py-8 text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] border-t border-white/[0.04] mt-auto">
         TrustMesh · x402 Protocol · Algorand · ETHGlobal 2026
       </footer>
 

@@ -230,3 +230,56 @@
 }
 .tm-loading-dot:nth-child(2) { animation-delay: 0.2s; }
 .tm-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Custom markdown styling ────────────────────────────────────────── */
+.tm-prose h1 {
+  @apply text-lg font-bold mt-5 mb-2.5 text-[var(--tm-cream)];
+}
+.tm-prose h2 {
+  @apply text-sm font-bold mt-4 mb-2 text-[var(--tm-cream)] uppercase tracking-wider;
+}
+.tm-prose h3 {
+  @apply text-xs font-bold mt-3.5 mb-1.5 text-[var(--tm-secondary)] uppercase tracking-widest;
+}
+.tm-prose p {
+  @apply text-sm leading-relaxed text-[var(--tm-on-surface)] my-2;
+}
+.tm-prose ul {
+  @apply list-disc pl-5 my-2 space-y-1 text-sm text-[var(--tm-on-surface-var)];
+}
+.tm-prose ol {
+  @apply list-decimal pl-5 my-2 space-y-1 text-sm text-[var(--tm-on-surface-var)];
+}
+.tm-prose li {
+  @apply my-1;
+}
+.tm-prose strong {
+  @apply font-semibold text-[var(--tm-cream)];
+}
+.tm-prose blockquote {
+  @apply border-l-2 border-[var(--tm-rust)] pl-4 my-3 italic text-[var(--tm-on-surface-var)];
+}
+.tm-prose table {
+  @apply w-full border-collapse my-4 border border-white/[0.06] rounded-xl overflow-hidden text-[11px] leading-normal;
+}
+.tm-prose th {
+  @apply bg-white/[0.02] p-2.5 text-left font-bold border-b border-white/[0.08] text-[var(--tm-cream)] uppercase tracking-wider text-[10px];
+}
+.tm-prose td {
+  @apply p-2.5 border-b border-white/[0.04] text-[var(--tm-on-surface-var)] font-medium;
+}
+.tm-prose tr:last-child td {
+  @apply border-0;
+}
+.tm-prose tr:hover td {
+  @apply bg-white/[0.02];
+}
+.tm-prose code {
+  @apply font-mono text-xs bg-white/[0.05] px-1.5 py-0.5 rounded text-[var(--tm-secondary)] border border-white/[0.04];
+}
+.tm-prose pre {
+  @apply font-mono text-xs bg-white/[0.03] p-4 rounded-xl overflow-x-auto border border-white/[0.06] my-4;
+}
+.tm-prose pre code {
+  @apply bg-transparent p-0 text-inherit border-0;
+}
