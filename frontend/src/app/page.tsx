@@ -195,7 +195,7 @@ export default function Home() {
                     type="submit"
                     id="research-button"
                     disabled={loading || !query.trim()}
-                    className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 h-12 px-6 text-base font-bold"
+                    className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 active:-translate-y-1/2 h-12 px-6 text-base font-bold"
                   >
                     {loading ? "Researching…" : "Verify Claims"}
                   </Button>
@@ -205,14 +205,24 @@ export default function Home() {
                   <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                     Target Language Translation (Optional)
                   </label>
-                  <Input
+                  <select
                     id="translate-to-input"
                     value={translateTo}
                     onChange={(e) => setTranslateTo(e.target.value)}
-                    placeholder="Translate final report to… (e.g. Spanish, French, German)"
-                    className="tm-input h-14 text-lg"
+                    className="tm-input h-14 text-lg bg-zinc-950 border border-zinc-800 rounded-md px-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-zinc-200"
                     disabled={loading}
-                  />
+                  >
+                    <option value="" className="text-zinc-500">No Translation (English)</option>
+                    <option value="Spanish">Spanish (Español)</option>
+                    <option value="French">French (Français)</option>
+                    <option value="German">German (Deutsch)</option>
+                    <option value="Italian">Italian (Italiano)</option>
+                    <option value="Japanese">Japanese (日本語)</option>
+                    <option value="Chinese">Chinese (中文)</option>
+                    <option value="Korean">Korean (한국어)</option>
+                    <option value="Hindi">Hindi (हिन्दी)</option>
+                    <option value="Portuguese">Portuguese (Português)</option>
+                  </select>
                 </div>
               </form>
 
@@ -223,7 +233,7 @@ export default function Home() {
                   <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
                 )}
                 {loading && !result && (
-                  <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
                     <LoadingDots />
                     <p className="text-base font-medium text-zinc-400 animate-pulse tracking-wide uppercase">
                       Consulting decentralized Bazaar agents...
@@ -276,7 +286,7 @@ export default function Home() {
                   type="submit"
                   id="research-button"
                   disabled={!query.trim()}
-                  className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 h-12 px-6 text-base font-bold"
+                  className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 active:-translate-y-1/2 h-12 px-6 text-base font-bold"
                 >
                   Verify Claims
                 </Button>
@@ -286,13 +296,23 @@ export default function Home() {
                 <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                   Target Language Translation (Optional)
                 </label>
-                <Input
+                <select
                   id="translate-to-input"
                   value={translateTo}
                   onChange={(e) => setTranslateTo(e.target.value)}
-                  placeholder="Translate final report to… (e.g. Spanish, French, German)"
-                  className="tm-input h-14 text-lg"
-                />
+                  className="tm-input h-14 text-lg bg-zinc-950 border border-zinc-800 rounded-md px-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-zinc-200"
+                >
+                  <option value="" className="text-zinc-500">No Translation (English)</option>
+                  <option value="Spanish">Spanish (Español)</option>
+                  <option value="French">French (Français)</option>
+                  <option value="German">German (Deutsch)</option>
+                  <option value="Italian">Italian (Italiano)</option>
+                  <option value="Japanese">Japanese (日本語)</option>
+                  <option value="Chinese">Chinese (中文)</option>
+                  <option value="Korean">Korean (한국어)</option>
+                  <option value="Hindi">Hindi (हिन्दी)</option>
+                  <option value="Portuguese">Portuguese (Português)</option>
+                </select>
               </div>
             </form>
 
