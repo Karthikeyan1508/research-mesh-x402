@@ -110,11 +110,13 @@ async function registerService() {
   const routeKey = "POST /translate";
   const accepts = routes[routeKey].accepts;
   try {
-    const response = await fetch("http://localhost:4025/register", {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const host = process.env.HOST || "localhost";
+    const response = await fetch(`${registryUrl}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        resourceUrl: `http://localhost:${PORT}/translate`,
+        resourceUrl: `http://${host}:${PORT}/translate`,
         tags: ["translation"],
         accepts: [accepts],
         schema: {

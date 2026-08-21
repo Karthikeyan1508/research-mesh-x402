@@ -62,7 +62,8 @@ function updateReputation(url: string, latencyMs: number, success: boolean) {
 
 async function discoverAgent(capability: string): Promise<DiscoveryResource[]> {
   try {
-    const res = await fetch(`http://localhost:4025/discover?capability=${capability}`);
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const res = await fetch(`${registryUrl}/discover?capability=${capability}`);
     if (!res.ok) {
       throw new Error(`Registry discovery failed: ${res.statusText}`);
     }
