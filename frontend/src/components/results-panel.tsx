@@ -93,7 +93,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {/* ── Agent pipeline strip ──────────────────────────────── */}
       <Card className="tm-glass overflow-hidden">
         <CardHeader className="pb-3 pt-5 px-6">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+          <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
             Agent Pipeline
           </p>
         </CardHeader>
@@ -111,7 +111,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {data.trustScore != null && (
         <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Trust Score
             </p>
           </CardHeader>
@@ -125,7 +125,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {(data.report || data.summary) && (
         <Card className="tm-glass overflow-hidden animate-fade-in">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Research Report
             </p>
           </CardHeader>
@@ -139,10 +139,10 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {data.provenance && (
         <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Provenance
               <span
-                className="ml-2 inline-block text-[9px] tracking-wider px-2 py-0.5 rounded border"
+                className="ml-2 inline-block text-[10px] tracking-wider px-2 py-0.5 rounded border"
                 style={
                   data.provenance.type === "cryptographic"
                     ? { color: "var(--tm-good)", borderColor: "var(--tm-good)40", background: "var(--tm-good)12" }
@@ -180,7 +180,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {data.verification && (
         <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Verification Verdict
             </p>
           </CardHeader>
@@ -206,7 +206,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {data.translation && (
         <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Translation · {data.translation.targetLanguage}
             </p>
           </CardHeader>
@@ -220,7 +220,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
       {data.payments && data.payments.length > 0 && (
         <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+            <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
               Payment Audit Trail
             </p>
           </CardHeader>

@@ -41,11 +41,11 @@ const SAMPLE_QUERIES: SampleQuery[] = [
 /* ── Loading dots ────────────────────────────────────────────────── */
 function LoadingDots() {
   return (
-    <div className="flex items-center gap-1.5 py-8 justify-center" aria-label="Loading">
+    <div className="flex items-center gap-2 py-10 justify-center" aria-label="Loading">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="tm-loading-dot block w-2.5 h-2.5 rounded-full"
+          className="tm-loading-dot block w-3 h-3 rounded-full"
           style={{
             background: "var(--color-accent)",
             animationDelay: `${i * 0.2}s`,
@@ -59,7 +59,7 @@ function LoadingDots() {
 /* ── Error banner ────────────────────────────────────────────────── */
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-400 tm-fade-up">
+    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-6 py-5 text-base text-red-400 tm-fade-up">
       <span className="font-bold mr-2">Error:</span>{message}
     </div>
   );
@@ -135,43 +135,43 @@ export default function Home() {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 w-full bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
-        <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-4 flex items-center justify-between">
-          {/* Wordmark (Strictly clean text, no logo badge) */}
+        <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-5 flex items-center justify-between">
+          {/* Wordmark (Clean text, clear typography) */}
           <div className="flex items-center gap-2 cursor-pointer" onClick={handleReset}>
-            <span className="text-base font-black tracking-widest uppercase text-white">
+            <span className="text-lg font-black tracking-widest uppercase text-white">
               TrustMesh
             </span>
           </div>
 
           {/* Server indicators */}
-          <div className="flex items-center gap-2.5 text-[9px] font-mono text-zinc-400 tracking-wider uppercase font-bold">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+          <div className="flex items-center gap-2.5 text-xs font-mono text-zinc-400 tracking-wider uppercase font-bold">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
             <span>Facilitator connected</span>
           </div>
         </div>
       </header>
 
       {/* ── Main Layout Workspace ──────────────────────────────── */}
-      <div className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-10 flex flex-col justify-start">
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-12 flex flex-col justify-start">
         {isWorkspaceActive ? (
           /* Active Results Layout (Two Columns) */
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10 items-start">
             
             {/* Left Column: Input and Results */}
-            <div className="flex flex-col gap-6 min-w-0">
+            <div className="flex flex-col gap-8 min-w-0">
               
               {/* Active Header (Left-aligned details) */}
-              <div className="text-left border-b border-zinc-900 pb-4">
-                <p className="text-xs font-bold tracking-widest uppercase text-zinc-500 mb-2">
+              <div className="text-left border-b border-zinc-900 pb-5">
+                <p className="text-sm font-bold tracking-widest uppercase text-zinc-500 mb-2">
                   Decentralized Trust Protocol
                 </p>
-                <h1 className="font-bold leading-tight tracking-tight text-white text-3xl" style={{ letterSpacing: "-0.02em" }}>
+                <h1 className="font-extrabold leading-tight tracking-tight text-white text-4xl" style={{ letterSpacing: "-0.02em" }}>
                   Verify Content Provenance. <span className="text-blue-500">Secure Trust.</span>
                 </h1>
                 {result && (
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-3 mt-3">
                     <span className="text-sm text-zinc-400">Query: <strong className="text-zinc-200">{result.query || query}</strong></span>
-                    <button onClick={handleReset} className="text-xs text-blue-500 hover:text-blue-400 font-semibold ml-2 border border-blue-500/20 bg-blue-500/5 px-2 py-0.5 rounded">
+                    <button onClick={handleReset} className="text-xs text-blue-500 hover:text-blue-400 font-semibold ml-2 border border-blue-500/20 bg-blue-500/5 px-2.5 py-1 rounded">
                       New Research
                     </button>
                   </div>
@@ -179,14 +179,14 @@ export default function Home() {
               </div>
 
               {/* Query Input form */}
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5 tm-glass animate-fade-in" id="research-form">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6 tm-glass animate-fade-in" id="research-form">
                 <div className="relative">
                   <Input
                     id="query-input"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Enter a claim or image URL to verify..."
-                    className="tm-input h-14 text-lg pr-36"
+                    className="tm-input h-16 text-xl pr-40"
                     disabled={loading}
                     required
                     autoFocus
@@ -195,13 +195,13 @@ export default function Home() {
                     type="submit"
                     id="research-button"
                     disabled={loading || !query.trim()}
-                    className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm font-semibold"
+                    className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 h-12 px-6 text-base font-bold"
                   >
                     {loading ? "Researching…" : "Verify Claims"}
                   </Button>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                     Target Language Translation (Optional)
                   </label>
@@ -210,7 +210,7 @@ export default function Home() {
                     value={translateTo}
                     onChange={(e) => setTranslateTo(e.target.value)}
                     placeholder="Translate final report to… (e.g. Spanish, French, German)"
-                    className="tm-input h-11 text-base"
+                    className="tm-input h-14 text-lg"
                     disabled={loading}
                   />
                 </div>
@@ -223,9 +223,9 @@ export default function Home() {
                   <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
                 )}
                 {loading && !result && (
-                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                  <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
                     <LoadingDots />
-                    <p className="text-sm font-medium text-zinc-400 animate-pulse tracking-wide uppercase text-xs">
+                    <p className="text-base font-medium text-zinc-400 animate-pulse tracking-wide uppercase">
                       Consulting decentralized Bazaar agents...
                     </p>
                   </div>
@@ -245,30 +245,30 @@ export default function Home() {
           </div>
         ) : (
           /* Initial Home Layout (Single Centered Column, perfectly balanced) */
-          <div className="max-w-3xl mx-auto w-full flex flex-col gap-8 pt-12 pb-20 items-center text-center">
+          <div className="max-w-4xl mx-auto w-full flex flex-col gap-10 pt-16 pb-24 items-center text-center">
             
             {/* Centered Headline */}
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-zinc-500 mb-2.5">
+              <p className="text-sm font-bold tracking-widest uppercase text-zinc-500 mb-3">
                 Decentralized Trust Protocol
               </p>
-              <h1 className="font-bold leading-tight tracking-tight text-white text-4xl sm:text-5xl mb-3.5" style={{ letterSpacing: "-0.02em" }}>
+              <h1 className="font-black leading-tight tracking-tight text-white text-5xl sm:text-6xl mb-4" style={{ letterSpacing: "-0.03em" }}>
                 Verify Content Provenance. <span className="text-blue-500">Secure Trust.</span>
               </h1>
-              <p className="text-zinc-400 text-base leading-relaxed max-w-xl mx-auto mt-2.5">
+              <p className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto mt-3">
                 An automated multi-agent settlement pipeline that performs cryptographic metadata audits, cross-references factual assertions, and issues on-chain trust payouts in real time.
               </p>
             </div>
 
             {/* Center Input Form */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6 tm-glass w-full text-left" id="research-form">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-8 tm-glass w-full text-left" id="research-form">
               <div className="relative">
                 <Input
                   id="query-input"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Enter a claim or image URL to verify..."
-                  className="tm-input h-14 text-lg pr-36"
+                  className="tm-input h-16 text-xl pr-40"
                   required
                   autoFocus
                 />
@@ -276,13 +276,13 @@ export default function Home() {
                   type="submit"
                   id="research-button"
                   disabled={!query.trim()}
-                  className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm font-semibold"
+                  className="tm-btn-primary absolute right-2 top-1/2 -translate-y-1/2 h-12 px-6 text-base font-bold"
                 >
                   Verify Claims
                 </Button>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                   Target Language Translation (Optional)
                 </label>
@@ -291,32 +291,32 @@ export default function Home() {
                   value={translateTo}
                   onChange={(e) => setTranslateTo(e.target.value)}
                   placeholder="Translate final report to… (e.g. Spanish, French, German)"
-                  className="tm-input h-11 text-base"
+                  className="tm-input h-14 text-lg"
                 />
               </div>
             </form>
 
             {/* Interactive Sample Cards */}
-            <div className="flex flex-col gap-3 w-full text-left tm-fade-up">
-              <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-500">
+            <div className="flex flex-col gap-4 w-full text-left tm-fade-up">
+              <h3 className="text-sm font-bold tracking-widest uppercase text-zinc-500">
                 Select a query to test the live payment pipeline:
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {SAMPLE_QUERIES.map((sample, idx) => (
                   <div
                     key={idx}
                     onClick={() => handleSampleClick(sample)}
-                    className="p-5 rounded-lg border border-zinc-800 bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/40 cursor-pointer transition-all duration-200 group flex flex-col justify-between min-h-[140px]"
+                    className="p-6 rounded-lg border border-zinc-850 bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/40 cursor-pointer transition-all duration-200 group flex flex-col justify-between min-h-[160px]"
                   >
                     <div>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/25">
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded border border-blue-500/25">
                         {sample.tag}
                       </span>
-                      <p className="text-sm font-semibold text-white mt-3 group-hover:text-blue-300 line-clamp-2">
+                      <p className="text-base font-bold text-white mt-4 group-hover:text-blue-300 line-clamp-2">
                         {sample.title}
                       </p>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-2 line-clamp-3">
+                    <p className="text-sm text-zinc-400 mt-2 line-clamp-3">
                       {sample.desc}
                     </p>
                   </div>
@@ -325,26 +325,26 @@ export default function Home() {
             </div>
 
             {/* Architecture Pipeline Flow */}
-            <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-950/20 w-full text-left flex flex-col gap-4">
-              <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-500">
+            <div className="p-8 rounded-lg border border-zinc-800 bg-zinc-950/20 w-full text-left flex flex-col gap-5">
+              <h3 className="text-sm font-bold tracking-widest uppercase text-zinc-500">
                 Bazaar Protocol Architecture Pipeline
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-                <div className="flex flex-col gap-1 border-l border-indigo-500/30 pl-3">
-                  <span className="font-mono text-[10px] text-indigo-400 font-bold uppercase">1. Provenance</span>
-                  <p className="text-xs text-zinc-400">C2PA Signature validation or web source checks.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 text-sm">
+                <div className="flex flex-col gap-1.5 border-l border-indigo-500/30 pl-4">
+                  <span className="font-mono text-xs text-indigo-400 font-bold uppercase">1. Provenance</span>
+                  <p className="text-sm text-zinc-400">C2PA Signature validation or web source checks.</p>
                 </div>
-                <div className="flex flex-col gap-1 border-l border-cyan-500/30 pl-3">
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase">2. Verification</span>
-                  <p className="text-xs text-zinc-400">Claims extraction & verified web citations.</p>
+                <div className="flex flex-col gap-1.5 border-l border-cyan-500/30 pl-4">
+                  <span className="font-mono text-xs text-cyan-400 font-bold uppercase">2. Verification</span>
+                  <p className="text-sm text-zinc-400">Claims extraction & verified web citations.</p>
                 </div>
-                <div className="flex flex-col gap-1 border-l border-amber-500/30 pl-3">
-                  <span className="font-mono text-[10px] text-amber-400 font-bold uppercase">3. Synthesis</span>
-                  <p className="text-xs text-zinc-400">Score aggregation and markdown report build.</p>
+                <div className="flex flex-col gap-1.5 border-l border-amber-500/30 pl-4">
+                  <span className="font-mono text-xs text-amber-400 font-bold uppercase">3. Synthesis</span>
+                  <p className="text-sm text-zinc-400">Score aggregation and consensus report build.</p>
                 </div>
-                <div className="flex flex-col gap-1 border-l border-pink-500/30 pl-3">
-                  <span className="font-mono text-[10px] text-pink-400 font-bold uppercase">4. Translation</span>
-                  <p className="text-xs text-zinc-400">Gemini-driven multilingual translation.</p>
+                <div className="flex flex-col gap-1.5 border-l border-pink-500/30 pl-4">
+                  <span className="font-mono text-xs text-pink-400 font-bold uppercase">4. Translation</span>
+                  <p className="text-sm text-zinc-400">Gemini-driven multilingual translation.</p>
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@ export default function Home() {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="text-center py-8 text-[10px] font-bold tracking-widest uppercase text-zinc-500 border-t border-zinc-900 mt-auto">
+      <footer className="text-center py-10 text-xs font-bold tracking-widest uppercase text-zinc-500 border-t border-zinc-900 mt-auto">
         TrustMesh · x402 Protocol · Algorand · ETHGlobal 2026
       </footer>
 

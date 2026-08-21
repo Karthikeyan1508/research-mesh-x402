@@ -188,7 +188,7 @@ export function OrchestrationSidebar({
     <Card className="tm-glass flex flex-col h-[calc(100vh-140px)] sticky top-[96px] w-full">
       <CardHeader className="pb-3 pt-5 px-6 shrink-0 border-b border-zinc-800 bg-zinc-950/20">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+          <p className="text-xs font-bold tracking-widest uppercase text-zinc-400">
             Orchestration Control Center
           </p>
           <span className="text-[9px] font-mono bg-zinc-900 text-zinc-300 border border-zinc-800 px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">
@@ -265,7 +265,7 @@ export function OrchestrationSidebar({
 
         {/* Live Logs Ticker */}
         <div className="flex-1 min-h-0 flex flex-col bg-zinc-950/60 rounded-md border border-zinc-800 p-4 font-mono text-xs leading-relaxed text-zinc-400">
-          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1.5 shrink-0 flex items-center justify-between">
+          <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1.5 shrink-0 flex items-center justify-between">
             <span>Terminal Output</span>
             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
           </div>
