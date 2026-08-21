@@ -1,0 +1,95 @@
+name: Docker Compose Smoke Test
+
+on:
+  push:
+    branches:
+      - improve/karthi
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Env Files from Secrets
+        run: |
+          mkdir -p orchestrator workers/provenance-agent workers/verification-agent workers/trust-synthesis-agent workers/translation-agent
+          
+          # Create orchestrator/.env
+          echo "ORCHESTRATOR_PRIVATE_KEY=\"${{ secrets.ORCHESTRATOR_PRIVATE_KEY }}\"" > orchestrator/.env
+          echo "PROVENANCE_AGENT_URL=http://provenance-agent:4021" >> orchestrator/.env
+          echo "TRUST_SYNTHESIS_AGENT_URL=http://trust-synthesis-agent:4022" >> orchestrator/.env
+          echo "VERIFICATION_AGENT_URL=http://verification-agent:4023" >> orchestrator/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> orchestrator/.env
+          echo "LLM_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> orchestrator/.env
+
+          # Create provenance-agent/.env
+          echo "PORT=4021" > workers/provenance-agent/.env
+          echo "FACILITATOR_URL=https://facilitator.goplausible.xyz" >> workers/provenance-agent/.env
+          echo "PROVENANCE_AGENT_ALGO_ADDRESS=${{ secrets.PROVENANCE_AGENT_ALGO_ADDRESS }}" >> workers/provenance-agent/.env
+          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}" >> workers/provenance-agent/.env
+
+          # Create verification-agent/.env
+          echo "PORT=4023" > workers/verification-agent/.env
+          echo "FACILITATOR_URL=https://facilitator.goplausible.xyz" >> workers/verification-agent/.env
+          echo "VERIFICATION_AGENT_ALGO_ADDRESS=${{ secrets.VERIFICATION_AGENT_ALGO_ADDRESS }}" >> workers/verification-agent/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> workers/verification-agent/.env
+
+          # Create trust-synthesis-agent/.env
+          echo "PORT=4022" > workers/trust-synthesis-agent/.env
+          echo "FACILITATOR_URL=https://facilitator.goplausible.xyz" >> workers/trust-synthesis-agent/.env
+          echo "TRUST_SYNTHESIS_AGENT_ALGO_ADDRESS=${{ secrets.TRUST_SYNTHESIS_AGENT_ALGO_ADDRESS }}" >> workers/trust-synthesis-agent/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> workers/trust-synthesis-agent/.env
+
+          # Create translation-agent/.env
+          echo "PORT=4024" > workers/translation-agent/.env
+          echo "FACILITATOR_URL=https://facilitator.goplausible.xyz" >> workers/translation-agent/.env
+          echo "TRANSLATION_AGENT_ALGO_ADDRESS=${{ secrets.TRANSLATION_AGENT_ALGO_ADDRESS }}" >> workers/translation-agent/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> workers/translation-agent/.env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and run Docker services
+        run: |
+          docker compose up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for orchestrator port 4020..."
+          for i in {1..30}; do
+            if curl -s http://localhost:4020 > /dev/null; then
+              echo "Orchestrator is ready!"
+              break
+            fi
+            echo "Waiting..."
+            sleep 2
+          done
+
+      - name: Run E2E Research Query Smoke Test
+        run: |
+          echo "Executing POST request to /research..."
+          RESPONSE=$(curl -s -X POST http://localhost:4020/research \
+            -H "Content-Type: application/json" \
+            -d '{"query": "latest news on Algorand x402"}')
+          
+          echo "Response content:"
+          echo "$RESPONSE"
+          
+          # Check if response has trustScore and exited with 200
+          if echo "$RESPONSE" | grep -q "trustScore"; then
+            echo "Smoke test passed successfully!"
+          else
+            echo "Smoke test failed: trustScore not found in response."
+            exit 1
+          fi
+
+      - name: Print Docker logs on failure or completion
+        if: always()
+        run: |
+          echo "=== Docker Compose Logs ==="
+          docker compose logs
+          echo "=== Shutting down containers ==="
+          docker compose down
