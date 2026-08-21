@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - improve/karthi
+      - main
 
 jobs:
   smoke-test:
