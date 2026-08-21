@@ -134,7 +134,7 @@ export default function Home() {
     <div className="relative min-h-screen tm-glow-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full bg-zinc-950/95 backdrop-blur-md border-b border-zinc-850">
+      <header className="sticky top-0 z-50 w-full bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-4 flex items-center justify-between">
           {/* Wordmark (Strictly clean text, no logo badge) */}
           <div className="flex items-center gap-2 cursor-pointer" onClick={handleReset}>

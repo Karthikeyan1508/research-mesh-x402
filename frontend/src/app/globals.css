@@ -175,7 +175,7 @@
 
 /* ── Custom markdown styling (Extremely legible, high contrast) ────── */
 .tm-prose h1 {
-  @apply text-2xl font-bold mt-7 mb-4 text-white border-b border-zinc-850 pb-2;
+  @apply text-2xl font-bold mt-7 mb-4 text-white border-b border-zinc-800 pb-2;
 }
 .tm-prose h2 {
   @apply text-lg font-bold mt-6 mb-3 text-white uppercase tracking-wider;

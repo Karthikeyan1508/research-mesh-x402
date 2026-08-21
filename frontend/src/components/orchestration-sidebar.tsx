@@ -265,7 +265,7 @@ export function OrchestrationSidebar({
 
         {/* Live Logs Ticker */}
         <div className="flex-1 min-h-0 flex flex-col bg-zinc-950/60 rounded-md border border-zinc-800 p-4 font-mono text-xs leading-relaxed text-zinc-400">
-          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-855 pb-1.5 shrink-0 flex items-center justify-between">
+          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1.5 shrink-0 flex items-center justify-between">
             <span>Terminal Output</span>
             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
           </div>
