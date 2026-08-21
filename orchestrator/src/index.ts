@@ -11,9 +11,21 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
+import pino from "pino";
+import { z } from "zod";
 import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactAvmScheme, toClientAvmSigner } from "@x402/avm";
 import algosdk from "algosdk";
+
+const logger = pino({ level: process.env.LOG_LEVEL || "info", name: "orchestrator" });
+
+function sendProblem(res: express.Response, status: number, title: string, detail: string) {
+  res
+    .status(status)
+    .type("application/problem+json")
+    .json({ type: "about:blank", title, status, detail });
+}
 
 type PaymentLogEntry = {
   worker: string;
@@ -24,7 +36,88 @@ type PaymentLogEntry = {
 type ResearchResult = {
   report: string;
   payments: PaymentLogEntry[];
+  trustScore?: number;
+  verificationMethod?: string;
+  verification?: any;
+  translationStatus?: "completed" | "skipped" | "failed";
+  translationError?: string;
 };
+
+type DiscoveryResource = {
+  id: string;
+  resourceUrl: string;
+  method: string;
+  description?: string;
+  mimeType?: string;
+  accepts: any[];
+  tags?: string[];
+};
+
+type DiscoveryResponse = {
+  items: DiscoveryResource[];
+};
+
+// Local reputation database in orchestrator memory
+const reputationTracker = new Map<string, { success: number; fail: number; totalLatencyMs: number; count: number }>();
+
+function updateReputation(url: string, latencyMs: number, success: boolean) {
+  const current = reputationTracker.get(url) || { success: 0, fail: 0, totalLatencyMs: 0, count: 0 };
+  if (success) {
+    current.success += 1;
+  } else {
+    current.fail += 1;
+  }
+  current.totalLatencyMs += latencyMs;
+  current.count += 1;
+  reputationTracker.set(url, current);
+}
+
+async function discoverAgent(capability: string): Promise<DiscoveryResource[]> {
+  try {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const res = await fetch(`${registryUrl}/discover?capability=${capability}`);
+    if (!res.ok) {
+      throw new Error(`Registry discovery failed: ${res.statusText}`);
+    }
+    const data = (await res.json()) as DiscoveryResponse;
+    return data.items || [];
+  } catch (err: any) {
+    logger.warn({ capability, err: err.message }, "discovery failed");
+    return [];
+  }
+}
+
+function selectBestAgent(candidates: DiscoveryResource[], fallbackUrl: string): string {
+  if (candidates.length === 0) {
+    logger.info({ fallbackUrl }, "no candidates discovered for capability, using fallback");
+    return fallbackUrl;
+  }
+
+  const scored = candidates.map(c => {
+    const url = c.resourceUrl;
+    // Bazaar uses price: "$0.005" — strip the $ sign and parse to float, then scale to cents
+    const rawPrice = c.accepts?.[0]?.price ?? c.accepts?.[0]?.amount ?? "10000";
+    const priceFloat = parseFloat(String(rawPrice).replace(/[^0-9.]/g, ''));
+    const price = isNaN(priceFloat) ? 10000 : Math.round(priceFloat * 1000); // scale to integer for scoring
+
+    const rep = reputationTracker.get(url);
+    let successRate = 1.0;
+    let avgLatencyMs = 200;
+
+    if (rep && rep.count > 0) {
+      successRate = rep.success / rep.count;
+      avgLatencyMs = rep.totalLatencyMs / rep.count;
+    }
+
+    // Lower score is better
+    const score = price * (2 - successRate) + (avgLatencyMs * 0.01);
+    return { url, score };
+  });
+
+  scored.sort((a, b) => a.score - b.score);
+  logger.info({ scored }, "discovered candidates ranked");
+  return scored[0].url;
+}
 
 function buildClient() {
   const privateKey = process.env.ORCHESTRATOR_PRIVATE_KEY;
@@ -68,7 +161,7 @@ async function runLLM(prompt: string, fallbackText: string): Promise<string> {
         if (text) return text.trim();
       }
     } catch (e: any) {
-      console.warn("[orchestrator] Gemini LLM call failed:", e.message);
+      logger.warn({ err: e.message }, "Gemini LLM call failed");
     }
   }
 
@@ -92,7 +185,7 @@ async function runLLM(prompt: string, fallbackText: string): Promise<string> {
         if (text) return text.trim();
       }
     } catch (e: any) {
-      console.warn("[orchestrator] OpenAI LLM call failed:", e.message);
+      logger.warn({ err: e.message }, "OpenAI LLM call failed");
     }
   }
 
@@ -117,20 +210,20 @@ async function runLLM(prompt: string, fallbackText: string): Promise<string> {
         if (text) return text.trim();
       }
     } catch (e: any) {
-      console.warn("[orchestrator] Anthropic LLM call failed:", e.message);
+      logger.warn({ err: e.message }, "Anthropic LLM call failed");
     }
   }
 
-  console.warn("[orchestrator] No LLM keys configured (or call failed) — using fallback mock response.");
+  logger.warn("no LLM keys configured (or call failed), using fallback mock response");
   return fallbackText;
 }
 
-async function executeResearch(query: string): Promise<ResearchResult> {
+async function executeResearch(query: string, translateTo?: string): Promise<ResearchResult> {
   const localPayments: PaymentLogEntry[] = [];
 
   const localCallWorker = async (workerName: string, url: string, options?: RequestInit) => {
     const client = buildClient();
-    console.log(`[orchestrator] paying ${workerName} -> ${url}`);
+    logger.info({ workerName, url }, "paying worker");
 
     const fetchWithPay = wrapFetchWithPayment(fetch, client);
     const response = await fetchWithPay(url, options);
@@ -139,7 +232,7 @@ async function executeResearch(query: string): Promise<ResearchResult> {
       if (paymentRequiredHeader) {
         try {
           const decoded = JSON.parse(Buffer.from(paymentRequiredHeader, "base64").toString("utf-8"));
-          console.error(`[orchestrator] Payment Required details:`, JSON.stringify(decoded, null, 2));
+          logger.error({ decoded }, "payment required details");
         } catch (e) {}
       }
       throw new Error(`${workerName} call failed: HTTP ${response.status}`);
@@ -161,78 +254,175 @@ async function executeResearch(query: string): Promise<ResearchResult> {
     return response.json();
   };
 
-  // 1. Call Provenance Agent (Paid)
-  const searchResult = await localCallWorker(
-    "Provenance Agent",
-    `${process.env.PROVENANCE_AGENT_URL ?? "http://localhost:4021"}/provenance`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    }
-  );
+  // 1. Discover and call Provenance Agent (Paid)
+  const provenanceCandidates = await discoverAgent("provenance");
+  const provenanceUrl = selectBestAgent(provenanceCandidates, `${process.env.PROVENANCE_AGENT_URL ?? "http://localhost:4021"}/provenance`);
 
-  console.log("[orchestrator] Provenance Agent responded with results.");
+  logger.info({ provenanceUrl }, "resolved Provenance Agent URL");
+  const startTimeProv = Date.now();
+  let searchResult;
+  try {
+    searchResult = await localCallWorker(
+      "Provenance Agent",
+      provenanceUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      }
+    );
+    updateReputation(provenanceUrl, Date.now() - startTimeProv, true);
+  } catch (err) {
+    updateReputation(provenanceUrl, Date.now() - startTimeProv, false);
+    throw err;
+  }
+
+  logger.info("Provenance Agent responded with results");
 
   const resultsText = JSON.stringify(searchResult.results);
 
-  // 2. Identify claim to verify
-  const claimPrompt = `Based on these search results for query "${query}", extract a single key factual claim or statement that should be fact-checked.\nSearch Results: ${resultsText}`;
-  const mockClaim = `Algorand's x402 protocol enables pay-per-API-call micropayments.`;
-  const claimToVerify = await runLLM(claimPrompt, mockClaim);
-  console.log(`[orchestrator] Extracted claim to verify: "${claimToVerify}"`);
+  // 2. LLM Step: Select claim to verify
+  const claimPrompt = `Based on the following research results, identify a single, key factual claim that is most critical to verify. Return ONLY the identified claim itself, in bold:
 
-  // 3. Call Verification Agent (Paid)
-  const verifyResult = await localCallWorker(
-    "Verification Agent",
-    `${process.env.VERIFICATION_AGENT_URL ?? "http://localhost:4023"}/verify`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ claim: claimToVerify }),
-    }
-  );
-  console.log(`[orchestrator] Verification Agent responded:`, verifyResult);
+  ${resultsText}`;
+  const fallbackClaim = `The search results for "${query}" are accurate.`;
+  const claimToVerify = await runLLM(claimPrompt, fallbackClaim);
 
-  // 4. Call Trust Synthesis Agent (Paid)
-  const summarizeResult = await localCallWorker(
-    "Trust Synthesis Agent",
-    `${process.env.TRUST_SYNTHESIS_AGENT_URL ?? "http://localhost:4022"}/synthesize`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: resultsText }),
-    }
-  );
-  console.log(`[orchestrator] Trust Synthesis Agent responded:`, summarizeResult);
+  logger.info({ claimToVerify }, "selected claim to verify");
 
-  // 5. Synthesize final report using LLM
-  console.log("[orchestrator] Synthesizing final report...");
-  const reportPrompt = `Create a final synthesized research report for query "${query}" based on the following resources:
-- Summary of Search: ${summarizeResult.summary}
-- Fact-Check Verdict for "${claimToVerify}": ${verifyResult.verdict} (Confidence: ${verifyResult.confidence}%, Reasoning: ${verifyResult.reasoning})
+  // 3. Discover and call Verification Agent (Paid)
+  const verificationCandidates = await discoverAgent("verification");
+  const verificationUrl = selectBestAgent(verificationCandidates, `${process.env.VERIFICATION_AGENT_URL ?? "http://localhost:4023"}/verify`);
 
-Format the report beautifully with markdown, including clear headings and citations.`;
+  logger.info({ verificationUrl }, "resolved Verification Agent URL");
+  const startTimeVerify = Date.now();
+  let verifyResult;
+  try {
+    verifyResult = await localCallWorker(
+      "Verification Agent",
+      verificationUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          claim: claimToVerify,
+          provenance: searchResult
+        }),
+      }
+    );
+    updateReputation(verificationUrl, Date.now() - startTimeVerify, true);
+  } catch (err) {
+    updateReputation(verificationUrl, Date.now() - startTimeVerify, false);
+    throw err;
+  }
 
-  const fallbackReport = `# Research Report: ${query}
+  logger.info("Verification Agent responded");
 
-## Summary of Findings
-${summarizeResult.summary}
+  // 4. Discover and call Trust Synthesis Agent (Paid)
+  const synthesisCandidates = await discoverAgent("synthesis");
+  const synthesisUrl = selectBestAgent(synthesisCandidates, `${process.env.TRUST_SYNTHESIS_AGENT_URL ?? "http://localhost:4022"}/synthesize`);
 
-## Fact Verification
-- **Claim**: ${claimToVerify}
-- **Verdict**: **${verifyResult.verdict}** (${verifyResult.confidence}% confidence)
-- **Details**: ${verifyResult.reasoning}
+  logger.info({ synthesisUrl }, "resolved Trust Synthesis Agent URL");
+  const startTimeSynthesize = Date.now();
+  let summarizeResult;
+  try {
+    summarizeResult = await localCallWorker(
+      "Trust Synthesis Agent",
+      synthesisUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: resultsText,
+          verification: verifyResult,
+          verificationMethod: searchResult.verificationMethod
+        }),
+      }
+    );
+    updateReputation(synthesisUrl, Date.now() - startTimeSynthesize, true);
+  } catch (err) {
+    updateReputation(synthesisUrl, Date.now() - startTimeSynthesize, false);
+    throw err;
+  }
 
-*Report compiled by TrustMesh using on-chain gated services.*`;
+  logger.info("Trust Synthesis Agent responded");
+
+  // 5. Final LLM synthesis of the user report
+  const reportPrompt = `Write a comprehensive, professional research report for the query: "${query}".
+  Include the following sections:
+  1. Executive Summary
+  2. Findings Table (listing sources, details, and credibility method: cryptographic vs inferred)
+  3. Verification Report (verifying "${claimToVerify}" - verdict: ${verifyResult.verdict}, confidence: ${verifyResult.confidence}%, reason: ${verifyResult.reasoning})
+  4. Overall Trust Synthesis (summary: ${summarizeResult.summary}, trust score: ${summarizeResult.trustScore}/100)
+
+  Use the findings: ${resultsText}`;
+  const fallbackReport = `Research report for "${query}". Overall Trust Score: ${summarizeResult.trustScore}/100. Verification verdict: ${verifyResult.verdict}.`;
 
   const finalReport = await runLLM(reportPrompt, fallbackReport);
 
+  // 6. Dynamic translation step (Paid)
+  let reportText = finalReport;
+  let translationStatus: "completed" | "skipped" | "failed" = "skipped";
+  let translationError: string | undefined = undefined;
+
+  if (translateTo) {
+    translationStatus = "failed"; // default to failed if requested but not finished
+    logger.info({ translateTo }, "translation requested");
+    const translationCandidates = await discoverAgent("translation");
+    if (translationCandidates.length > 0) {
+      const translationUrl = selectBestAgent(translationCandidates, "");
+      if (translationUrl) {
+        logger.info({ translationUrl }, "resolved Translation Agent URL");
+        const startTimeTranslate = Date.now();
+        try {
+          const translationResult = await localCallWorker(
+            "Translation Agent",
+            translationUrl,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: finalReport,
+                targetLanguage: translateTo
+              })
+            }
+          );
+          updateReputation(translationUrl, Date.now() - startTimeTranslate, true);
+          if (translationResult.translatedText) {
+            reportText = translationResult.translatedText;
+            translationStatus = "completed";
+          } else {
+            translationError = "Translation agent returned empty response";
+          }
+        } catch (err: any) {
+          updateReputation(translationUrl, Date.now() - startTimeTranslate, false);
+          translationError = err.message;
+          logger.warn({ err: err.message }, "dynamic Translation Agent failed, returning untranslated report as fallback");
+        }
+      } else {
+        translationError = "No translation agent URL resolved";
+      }
+    } else {
+      translationError = "No translation agent registered in Bazaar registry";
+      logger.info("no Translation Agent registered in Bazaar, skipping translation");
+    }
+  }
+
   return {
-    report: finalReport,
-    payments: localPayments
+    report: reportText,
+    payments: localPayments,
+    trustScore: summarizeResult.trustScore,
+    verificationMethod: summarizeResult.verificationMethod,
+    verification: verifyResult,
+    translationStatus,
+    translationError
   };
 }
+
+const ResearchBodySchema = z.object({
+  query: z.string().min(1, "query must be a non-empty string"),
+  translateTo: z.string().min(1).optional(),
+});
 
 async function main() {
   const isServer = process.argv.includes("--server") || !process.argv[2];
@@ -241,26 +431,38 @@ async function main() {
     const app = express();
     app.use(cors());
     app.use(express.json());
+    app.use(
+      rateLimit({
+        windowMs: 60 * 1000,
+        max: 60,
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (_req, res) => sendProblem(res, 429, "Too Many Requests", "Rate limit exceeded, try again shortly."),
+      })
+    );
 
     app.post("/research", async (req, res) => {
-      const { query } = req.body;
-      if (!query) {
-        return res.status(400).json({ error: "Missing query parameter" });
+      const parsed = ResearchBodySchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        logger.warn({ issues: parsed.error.issues }, "rejected malformed /research body");
+        sendProblem(res, 400, "Invalid Request Body", parsed.error.issues.map((i) => i.message).join("; "));
+        return;
       }
+      const { query, translateTo } = parsed.data;
 
-      console.log(`\n[orchestrator] /research request received: "${query}"`);
+      logger.info({ query, translateTo }, "/research request received");
       try {
-        const result = await executeResearch(query);
+        const result = await executeResearch(query, translateTo);
         res.json(result);
       } catch (err: any) {
-        console.error(`[orchestrator] research failed:`, err.message);
-        res.status(500).json({ error: err.message });
+        logger.error({ err: err.message }, "research failed");
+        sendProblem(res, 500, "Internal Server Error", err.message);
       }
     });
 
     const PORT = Number(process.env.PORT) || 4020;
     app.listen(PORT, () => {
-      console.log(`[orchestrator] server listening on port :${PORT}`);
+      logger.info(`server listening on port :${PORT}`);
     });
   } else {
     const query = process.argv[2];
@@ -276,13 +478,13 @@ async function main() {
       console.log("[orchestrator] Payment audit trail:");
       console.table(result.payments);
     } catch (err: any) {
-      console.error("[orchestrator] failed:", err.message);
+      logger.error({ err: err.message }, "orchestrator CLI run failed");
       process.exit(1);
     }
   }
 }
 
 main().catch((err) => {
-  console.error("[orchestrator] failed:", err.message);
+  logger.error({ err: err.message }, "orchestrator failed");
   process.exit(1);
 });

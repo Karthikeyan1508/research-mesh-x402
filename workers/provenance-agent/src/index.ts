@@ -12,20 +12,40 @@
 
 import "dotenv/config";
 import express from "express";
+import rateLimit from "express-rate-limit";
+import pino from "pino";
+import { z } from "zod";
 import { paymentMiddleware } from "@x402/express";
 import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactAvmScheme } from "@x402/avm/exact/server";
 import { ALGORAND_TESTNET_CAIP2, USDC_TESTNET_ASA_ID } from "@x402/avm";
 import { createC2pa } from 'c2pa-node';
 
+const logger = pino({ level: process.env.LOG_LEVEL || "info", name: "provenance-agent" });
+
+function sendProblem(res: express.Response, status: number, title: string, detail: string) {
+  res
+    .status(status)
+    .type("application/problem+json")
+    .json({ type: "about:blank", title, status, detail });
+}
+
 const app = express();
 app.use(express.json());
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) => sendProblem(res, 429, "Too Many Requests", "Rate limit exceeded, try again shortly."),
+  })
+);
 const PORT = Number(process.env.PORT) || 4021;
 
 if (!process.env.PROVENANCE_AGENT_ALGO_ADDRESS) {
-  console.warn(
-    "[provenance-agent] WARNING: PROVENANCE_AGENT_ALGO_ADDRESS is not set in .env — " +
-      "payments have nowhere to settle. Set it before testing the payment flow."
+  logger.warn(
+    "PROVENANCE_AGENT_ALGO_ADDRESS is not set in .env — payments have nowhere to settle. Set it before testing the payment flow."
   );
 }
 
@@ -53,6 +73,13 @@ app.use(
   paymentMiddleware(routes, server)
 );
 
+const ProvenanceBodySchema = z
+  .object({
+    query: z.string().min(1).optional(),
+    q: z.string().min(1).optional(),
+  })
+  .passthrough();
+
 function isImageUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -71,16 +98,23 @@ function isImageUrl(url: string): boolean {
 
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/provenance", async (req, res) => {
-  const query = String(req.body.query || req.body.q || req.query.q || "");
-  console.log(`[provenance-agent] /provenance request received, query: "${query}"`);
+  const parsed = ProvenanceBodySchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    logger.warn({ issues: parsed.error.issues }, "rejected malformed /provenance body");
+    sendProblem(res, 400, "Invalid Request Body", parsed.error.issues.map((i) => i.message).join("; "));
+    return;
+  }
+
+  const query = String(parsed.data.query || parsed.data.q || req.query.q || "");
+  logger.info({ query }, "/provenance request received");
   if (!query) {
-    res.status(400).json({ error: "Missing query/q parameter" });
+    sendProblem(res, 400, "Missing Parameter", "Missing query/q parameter");
     return;
   }
 
   if (isImageUrl(query)) {
     try {
-      console.log(`[provenance-agent] Image URL detected. Attempting to download: ${query}`);
+      logger.info({ query }, "image URL detected, attempting download");
       const fetchResp = await fetch(query);
       if (!fetchResp.ok) {
         throw new Error(`Failed to download image: ${fetchResp.status} ${fetchResp.statusText}`);
@@ -97,7 +131,7 @@ app.post("/provenance", async (req, res) => {
       else if (ext === 'dng') mimeType = 'image/dng';
       else if (ext === 'tiff') mimeType = 'image/tiff';
 
-      console.log(`[provenance-agent] Validating C2PA manifest for image (${mimeType})...`);
+      logger.info({ mimeType }, "validating C2PA manifest for image");
       const c2pa = createC2pa();
       const manifestStore = await c2pa.read({
         buffer: imageBuffer,
@@ -106,11 +140,11 @@ app.post("/provenance", async (req, res) => {
 
       if (manifestStore && manifestStore.active_manifest) {
         const activeManifest = manifestStore.active_manifest;
-        console.log(`[provenance-agent] Valid C2PA manifest found: "${activeManifest.title}"`);
+        logger.info({ title: activeManifest.title }, "valid C2PA manifest found");
 
         // Extract creator
         let creator = "Unknown";
-        const creativeWorkAssertion = activeManifest.assertions?.find(a => 
+        const creativeWorkAssertion = activeManifest.assertions?.find(a =>
           a.label === 'stds.schema-org.CreativeWork' || a.label === 'st.schema.creativework'
         );
         if (creativeWorkAssertion?.data?.author?.[0]?.name) {
@@ -142,15 +176,15 @@ app.post("/provenance", async (req, res) => {
         });
         return;
       } else {
-        console.log(`[provenance-agent] No C2PA manifest found in image. Falling back to Tavily search...`);
+        logger.info("no C2PA manifest found in image, falling back to Tavily search");
       }
     } catch (err: any) {
-      console.warn(`[provenance-agent] C2PA validation failed: ${err.message}. Falling back to Tavily search...`);
+      logger.warn({ err: err.message }, "C2PA validation failed, falling back to Tavily search");
     }
   }
 
   // Fallback to Tavily search (inferred)
-  console.log(`[provenance-agent] Performing Tavily search for query: "${query}"`);
+  logger.info({ query }, "performing Tavily search");
   try {
     const results = await mockSearch(query);
     res.json({
@@ -159,14 +193,14 @@ app.post("/provenance", async (req, res) => {
       results
     });
   } catch (err: any) {
-    console.error(`[provenance-agent] Search failed:`, err.message);
-    res.status(500).json({ error: err.message });
+    logger.error({ err: err.message }, "search failed");
+    sendProblem(res, 500, "Internal Server Error", err.message);
   }
 });
 
 async function mockSearch(query: string) {
   if (!process.env.TAVILY_API_KEY) {
-    console.warn("[provenance-agent] TAVILY_API_KEY is not configured — falling back to mock results.");
+    logger.warn("TAVILY_API_KEY is not configured — falling back to mock results.");
     return [
       {
         title: `Placeholder result for "${query}"`,
@@ -196,6 +230,41 @@ async function mockSearch(query: string) {
   }));
 }
 
+async function registerService() {
+  const routeKey = "POST /provenance";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const host = process.env.HOST || "localhost";
+    const response = await fetch(`${registryUrl}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://${host}:${PORT}/provenance`,
+        tags: ["provenance"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { query: "string" },
+          output: {
+            query: "string",
+            verificationMethod: "string",
+            results: "any"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      logger.info("successfully registered to Local Bazaar Registry");
+    } else {
+      logger.warn({ statusText: response.statusText }, "registration failed");
+    }
+  } catch (err: any) {
+    logger.warn({ err: err.message }, "registry registration failed");
+  }
+}
+
 app.listen(PORT, () => {
-  console.log(`[provenance-agent] listening on :${PORT} — POST /provenance is x402-gated at $0.01`);
+  logger.info(`listening on :${PORT} — POST /provenance is x402-gated at $0.01`);
+  registerService();
 });

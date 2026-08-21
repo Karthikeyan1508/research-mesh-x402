@@ -1,5 +1,5 @@
 {
-  "name": "@trustmesh/provenance-agent",
+  "name": "@trustmesh/registry",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,11 +9,6 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@x402/avm": "^2.22.0",
-    "@x402/core": "^2.22.0",
-    "@x402/express": "^2.22.0",
-    "c2pa-node": "^0.5.26",
-    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "pino": "^9.5.0",
     "zod": "^3.24.1",
