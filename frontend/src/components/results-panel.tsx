@@ -91,7 +91,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
     <div className="flex flex-col gap-6 tm-fade-up" id="results-panel">
 
       {/* ── Agent pipeline strip ──────────────────────────────── */}
-      <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+      <Card className="tm-glass overflow-hidden">
         <CardHeader className="pb-3 pt-5 px-6">
           <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
             Agent Pipeline
@@ -109,7 +109,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Trust Score Meter ─────────────────────────────────── */}
       {data.trustScore != null && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+        <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Trust Score
@@ -123,7 +123,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Summary / Report ─────────────────────────────────── */}
       {(data.report || data.summary) && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden animate-fade-in">
+        <Card className="tm-glass overflow-hidden animate-fade-in">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Research Report
@@ -137,12 +137,12 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Provenance ───────────────────────────────────────── */}
       {data.provenance && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+        <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Provenance
               <span
-                className="ml-2 inline-block text-[9px] tracking-wider px-2 py-0.5 rounded-full border"
+                className="ml-2 inline-block text-[9px] tracking-wider px-2 py-0.5 rounded border"
                 style={
                   data.provenance.type === "cryptographic"
                     ? { color: "var(--tm-good)", borderColor: "var(--tm-good)40", background: "var(--tm-good)12" }
@@ -178,7 +178,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Verification Verdict ─────────────────────────────── */}
       {data.verification && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+        <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Verification Verdict
@@ -204,7 +204,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Translation ──────────────────────────────────────── */}
       {data.translation && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+        <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Translation · {data.translation.targetLanguage}
@@ -218,7 +218,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 
       {/* ── Payment Audit Trail ──────────────────────────────── */}
       {data.payments && data.payments.length > 0 && (
-        <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
+        <Card className="tm-glass overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
               Payment Audit Trail
@@ -237,11 +237,11 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 /* ── Helpers ────────────────────────────────────────────────────── */
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1.5 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs font-semibold tracking-wider uppercase text-[var(--tm-on-surface-var)] shrink-0">
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-zinc-900 last:border-0">
+      <span className="text-xs font-semibold tracking-wider uppercase text-zinc-400 shrink-0">
         {label}
       </span>
-      <span className="text-sm text-right text-[var(--tm-on-surface)] font-medium">{value}</span>
+      <span className="text-sm text-right text-zinc-200 font-medium">{value}</span>
     </div>
   );
 }

@@ -18,7 +18,7 @@ function LoadingDots() {
           key={i}
           className="tm-loading-dot block w-2 h-2 rounded-full"
           style={{
-            background: "var(--tm-secondary)",
+            background: "var(--color-accent)",
             animationDelay: `${i * 0.2}s`,
           }}
         />
@@ -30,7 +30,7 @@ function LoadingDots() {
 /* ── Error banner ────────────────────────────────────────────────── */
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/8 px-5 py-4 text-sm text-[#ef4444] tm-fade-up">
+    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-400 tm-fade-up">
       <span className="font-bold mr-2">Error:</span>{message}
     </div>
   );
@@ -87,33 +87,27 @@ export default function Home() {
     <div className="relative min-h-screen tm-glow-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 tm-glass border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 w-full bg-zinc-950/95 backdrop-blur-md border-b border-zinc-850">
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-4 flex items-center justify-between">
           {/* Wordmark */}
           <div className="flex items-center gap-3">
             <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{ background: "var(--tm-rust)", color: "var(--tm-cream)" }}
+              className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold"
+              style={{ background: "#3b82f6", color: "#ffffff" }}
               aria-hidden="true"
             >
               T
             </div>
-            <span className="text-sm font-bold tracking-wider uppercase text-[var(--tm-on-surface)]">
+            <span className="text-sm font-bold tracking-wider uppercase text-white">
               TrustMesh
             </span>
-            <span className="hidden sm:inline-block text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border"
-              style={{
-                color: "var(--tm-blush)",
-                borderColor: "var(--tm-blush)40",
-                background: "var(--tm-blush)12",
-              }}
-            >
+            <span className="hidden sm:inline-block text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded border border-zinc-800 text-zinc-400 bg-zinc-900/50">
               x402
             </span>
           </div>
 
           {/* Server indicators */}
-          <div className="flex items-center gap-2.5 text-[9px] font-mono text-[var(--tm-on-surface-var)] tracking-wider uppercase font-bold">
+          <div className="flex items-center gap-2.5 text-[9px] font-mono text-zinc-400 tracking-wider uppercase font-bold">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
             <span>Facilitator connected</span>
           </div>
@@ -129,27 +123,27 @@ export default function Home() {
             {/* Title / Hero */}
             <div className={`transition-all duration-500 ${result ? "text-left" : "text-center pt-8 pb-4"}`}>
               {/* Eyebrow */}
-              <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] mb-2">
+              <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-2">
                 AI Content Provenance & Trust Verification
               </p>
 
               {/* Display headline */}
-              <h1 className={`font-bold leading-tight tracking-tight text-[var(--tm-cream)] transition-all duration-500 ${
+              <h1 className={`font-bold leading-tight tracking-tight text-white transition-all duration-500 ${
                 result ? "text-2xl mb-1" : "text-4xl sm:text-5xl mb-2"
               }`} style={{ letterSpacing: "-0.02em" }}>
                 Verify. Trust.{" "}
-                <span style={{ color: "var(--tm-secondary)" }}>Confirm.</span>
+                <span className="text-blue-500">Confirm.</span>
               </h1>
 
               {!result && (
-                <p className="text-[var(--tm-on-surface-var)] text-sm leading-relaxed max-w-xl mx-auto mt-2">
+                <p className="text-zinc-400 text-sm leading-relaxed max-w-xl mx-auto mt-2">
                   Submit any research query and TrustMesh's multi-agent pipeline will cryptographically verify provenance, check claims, and return a scored trust report — paying each agent in real time via x402.
                 </p>
               )}
             </div>
 
             {/* ── Query form ─────────────────────────────────────── */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white/[0.01] border border-white/[0.04] p-5 rounded-2xl tm-glass" id="research-form">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5 tm-glass" id="research-form">
               {/* Main query input */}
               <div className="relative">
                 <Input
@@ -174,7 +168,7 @@ export default function Home() {
 
               {/* Optional translation language */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="translate-to-input" className="text-[9px] font-bold tracking-widest text-[var(--tm-on-surface-var)] uppercase">
+                <label htmlFor="translate-to-input" className="text-[9px] font-bold tracking-widest text-zinc-400 uppercase">
                   Target Language (Optional)
                 </label>
                 <Input
@@ -197,7 +191,7 @@ export default function Home() {
               {loading && !result && (
                 <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
                   <LoadingDots />
-                  <p className="text-sm font-medium text-[var(--tm-on-surface-var)] animate-pulse tracking-wide uppercase text-[9px]">
+                  <p className="text-sm font-medium text-zinc-400 animate-pulse tracking-wide uppercase text-[9px]">
                     Consulting decentralized Bazaar agents...
                   </p>
                 </div>
@@ -218,7 +212,7 @@ export default function Home() {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="text-center py-8 text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] border-t border-white/[0.04] mt-auto">
+      <footer className="text-center py-8 text-[10px] font-bold tracking-widest uppercase text-zinc-500 border-t border-zinc-900 mt-auto">
         TrustMesh · x402 Protocol · Algorand · ETHGlobal 2026
       </footer>
 

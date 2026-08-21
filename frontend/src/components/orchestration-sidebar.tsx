@@ -182,13 +182,13 @@ export function OrchestrationSidebar({
   }, [visibleLogs]);
 
   return (
-    <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-140px)] sticky top-[96px] w-full">
-      <CardHeader className="pb-3 pt-5 px-6 shrink-0 border-b border-white/[0.04] bg-white/[0.01]">
+    <Card className="tm-glass flex flex-col h-[calc(100vh-140px)] sticky top-[96px] w-full">
+      <CardHeader className="pb-3 pt-5 px-6 shrink-0 border-b border-zinc-800 bg-zinc-950/20">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
             Orchestration Control Center
           </p>
-          <span className="text-[9px] font-mono bg-[var(--tm-rust)]/10 text-[var(--tm-secondary)] border border-[var(--tm-rust)]/30 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+          <span className="text-[9px] font-mono bg-zinc-900 text-zinc-300 border border-zinc-800 px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">
             Active Trace
           </span>
         </div>
@@ -208,19 +208,19 @@ export function OrchestrationSidebar({
                 {idx < activeSteps.length - 1 && (
                   <div
                     className={`absolute left-3 top-7 bottom-0 w-0.5 -translate-x-1/2 transition-colors duration-500 ${
-                      isCompleted ? "bg-[var(--tm-good)]" : "bg-white/[0.06]"
+                      isCompleted ? "bg-emerald-500" : "bg-zinc-800"
                     }`}
                   />
                 )}
 
                 {/* Status Dot / Spinner */}
                 <div
-                  className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 text-[10px] font-mono font-bold z-10 transition-all duration-300 ${
+                  className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-mono font-bold z-10 transition-all duration-300 ${
                     isCompleted
-                      ? "border-[var(--tm-good)] bg-[var(--tm-good)]/10 text-[var(--tm-good)]"
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
                       : isActive
-                      ? "border-[var(--tm-secondary)] bg-[var(--tm-secondary)]/10 text-[var(--tm-secondary)] animate-pulse"
-                      : "border-white/[0.12] bg-white/[0.02] text-white/30"
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400 animate-pulse"
+                      : "border-zinc-800 bg-zinc-900/50 text-zinc-600"
                   }`}
                 >
                   {isCompleted ? "✓" : isActive ? "▶" : idx + 1}
@@ -232,23 +232,23 @@ export function OrchestrationSidebar({
                     <h4
                       className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${
                         isActive
-                          ? "text-[var(--tm-cream)]"
+                          ? "text-white"
                           : isCompleted
-                          ? "text-[var(--tm-on-surface)]"
-                          : "text-white/40"
+                          ? "text-zinc-200"
+                          : "text-zinc-500"
                       }`}
                     >
                       {step.name}
                     </h4>
-                    <span className="text-[10px] font-mono text-[var(--tm-secondary)] font-medium">
+                    <span className="text-[10px] font-mono text-zinc-400 font-medium">
                       {step.price}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[var(--tm-on-surface-var)] mt-0.5 line-clamp-2">
+                  <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-2">
                     {step.desc}
                   </p>
                   {isCompleted && (
-                    <div className="text-[9px] font-mono text-[var(--tm-on-surface-var)] mt-1 truncate">
+                    <div className="text-[9px] font-mono text-zinc-400 mt-1 truncate">
                       Wallet: <span className="opacity-60">{step.wallet}</span>
                     </div>
                   )}
@@ -258,21 +258,21 @@ export function OrchestrationSidebar({
           })}
         </div>
 
-        <Separator className="bg-white/[0.06] shrink-0" />
+        <Separator className="bg-zinc-800 shrink-0" />
 
         {/* Live Logs Ticker */}
-        <div className="flex-1 min-h-0 flex flex-col bg-black/40 rounded-xl border border-white/[0.04] p-4 font-mono text-[10px] leading-relaxed text-[var(--tm-on-surface-var)]">
-          <div className="text-[9px] font-bold text-[var(--tm-secondary)] uppercase tracking-wider mb-2 border-b border-white/[0.04] pb-1.5 shrink-0 flex items-center justify-between">
+        <div className="flex-1 min-h-0 flex flex-col bg-zinc-950/60 rounded-md border border-zinc-800 p-4 font-mono text-[10px] leading-relaxed text-zinc-400">
+          <div className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-850 pb-1.5 shrink-0 flex items-center justify-between">
             <span>Terminal Output</span>
-            <span className="w-1.5 h-1.5 bg-[var(--tm-secondary)] rounded-full animate-ping" />
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-2">
             {visibleLogs.map((log, idx) => {
-              let color = "text-[var(--tm-on-surface-var)]";
-              if (log.startsWith("[SYSTEM]")) color = "text-[var(--tm-secondary)] font-bold";
+              let color = "text-zinc-400";
+              if (log.startsWith("[SYSTEM]")) color = "text-blue-400 font-bold";
               else if (log.endsWith("-- INITIALIZED")) color = "text-indigo-400 font-semibold";
-              else if (log.endsWith("-- COMPLETED")) color = "text-[var(--tm-good)] font-semibold";
-              else if (log.includes("Payment settled")) color = "text-[var(--tm-blush)] font-semibold";
+              else if (log.endsWith("-- COMPLETED")) color = "text-emerald-400 font-semibold";
+              else if (log.includes("Payment settled")) color = "text-sky-300 font-semibold";
 
               return (
                 <div key={idx} className={`${color} break-all`}>

@@ -2,88 +2,46 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-
 @custom-variant dark (&:is(.dark *));
 
-/* ── TrustMesh design tokens (DESIGN 3.md) ───────────────────────────── */
+/* ── TrustMesh Sleek Developer Theme Tokens ─────────────────────────── */
 :root {
-  /* Obsidian Earth base */
-  --tm-bg:               #0C0908;
-  --tm-surface:          #161311;
-  --tm-surface-low:      #1e1b19;
-  --tm-surface-mid:      #231f1d;
-  --tm-surface-high:     #2d2928;
-  --tm-surface-highest:  #383432;
+  --background:          #030303;
+  --foreground:          #fafafa;
 
-  /* Text */
-  --tm-cream:            #F5F2ED;
-  --tm-on-surface:       #e9e1de;
-  --tm-on-surface-var:   #c8c7be;
+  /* Card and Panel Backgrounds */
+  --card:                #09090b;
+  --card-foreground:     #fafafa;
+  --popover:             #09090b;
+  --popover-foreground:  #fafafa;
 
-  /* Accents */
-  --tm-rust:             #8E3A1F;
-  --tm-blush:            #EBC3B5;
-  --tm-secondary:        #ffb59f;
-  --tm-glow-core:        #5D2615;
+  /* Accent Mappings (High Tech Blue/Indigo) */
+  --primary:             #ffffff;
+  --primary-foreground:  #030303;
+  --secondary:           #18181b;
+  --secondary-foreground:#fafafa;
+  --muted:               #18181b;
+  --muted-foreground:    #a1a1aa;
+  --accent:              #3b82f6;
+  --accent-foreground:   #ffffff;
 
-  /* Trust score bands */
-  --tm-good:     #22c55e;
-  --tm-warning:  #eab308;
-  --tm-serious:  #f97316;
-  --tm-critical: #ef4444;
+  /* UI Borders and Inputs */
+  --border:              #27272a;
+  --input:               #09090b;
+  --ring:                #3b82f6;
+  --radius:              0.375rem; /* Precise 6px border radius */
 
-  /* Agent categorical palette */
-  --tm-agent-1: #6366f1;   /* Provenance   – indigo  */
-  --tm-agent-2: #06b6d4;   /* Verification – cyan    */
-  --tm-agent-3: #f59e0b;   /* Trust Synth  – amber   */
-  --tm-agent-4: #ec4899;   /* Translation  – pink    */
+  /* Trust Score bands */
+  --tm-good:             #10b981;  /* Emerald */
+  --tm-warning:          #f59e0b;  /* Amber */
+  --tm-serious:          #f97316;  /* Orange */
+  --tm-critical:         #ef4444;  /* Red */
 
-  /* shadcn mappings – dark by default (Stitch spec is dark-first) */
-  --background:          #0C0908;
-  --foreground:          #e9e1de;
-  --card:                #1e1b19;
-  --card-foreground:     #e9e1de;
-  --popover:             #1e1b19;
-  --popover-foreground:  #e9e1de;
-  --primary:             #F5F2ED;
-  --primary-foreground:  #0C0908;
-  --secondary:           #2d2928;
-  --secondary-foreground:#e9e1de;
-  --muted:               #231f1d;
-  --muted-foreground:    #929189;
-  --accent:              #8E3A1F;
-  --accent-foreground:   #F5F2ED;
-  --destructive:         #ef4444;
-  --border:              rgba(245,242,237,0.1);
-  --input:               rgba(245,242,237,0.08);
-  --ring:                #8E3A1F;
-  --radius:              1rem;
-}
-
-/* Light override */
-.light {
-  --tm-bg:               #F5F2ED;
-  --tm-surface:          #ECEAE6;
-  --tm-surface-low:      #E3E0DC;
-  --tm-surface-mid:      #D8D5D0;
-  --tm-cream:            #0C0908;
-  --tm-on-surface:       #1a1816;
-  --tm-on-surface-var:   #3a3835;
-  --background:          #F5F2ED;
-  --foreground:          #0C0908;
-  --card:                #ECEAE6;
-  --card-foreground:     #0C0908;
-  --popover:             #ECEAE6;
-  --popover-foreground:  #0C0908;
-  --primary:             #0C0908;
-  --primary-foreground:  #F5F2ED;
-  --secondary:           #E3E0DC;
-  --secondary-foreground:#1a1816;
-  --muted:               #E3E0DC;
-  --muted-foreground:    #5a5755;
-  --border:              rgba(12,9,8,0.12);
-  --input:               rgba(12,9,8,0.08);
-  --ring:                #8E3A1F;
+  /* Agent Categorical Palette */
+  --tm-agent-1:          #6366f1;  /* Indigo */
+  --tm-agent-2:          #06b6d4;  /* Cyan */
+  --tm-agent-3:          #f59e0b;  /* Amber */
+  --tm-agent-4:          #ec4899;  /* Pink */
 }
 
 @theme inline {
@@ -106,10 +64,10 @@
   --color-input:              var(--input);
   --color-ring:               var(--ring);
   --font-sans: "Inter", system-ui, sans-serif;
-  --radius-sm:  calc(var(--radius) * 0.5);
-  --radius-md:  calc(var(--radius) * 1.5);
-  --radius-lg:  calc(var(--radius) * 2);
-  --radius-xl:  9999px;
+  --radius-sm:  calc(var(--radius) * 0.75);
+  --radius-md:  var(--radius);
+  --radius-lg:  calc(var(--radius) * 1.5); /* 9px */
+  --radius-xl:  calc(var(--radius) * 2);   /* 12px */
 }
 
 @layer base {
@@ -124,101 +82,89 @@
   }
 }
 
-/* ── Radial glow background ─────────────────────────────────────────── */
+/* ── Background layout gradient ─────────────────────────────────────── */
 .tm-glow-bg {
   background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(93,38,21,0.55) 0%, transparent 70%),
-    var(--tm-bg);
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.1) 0%, transparent 80%),
+    #030303;
 }
 
-/* ── Hairline divider ───────────────────────────────────────────────── */
-.tm-divider {
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(245,242,237,0.15) 50%, transparent);
-}
-
-/* ── Glassmorphism card ─────────────────────────────────────────────── */
+/* ── Modern Flat Cards (No heavy glassmorphism or large radii) ──────── */
 .tm-glass {
-  background: rgba(30,27,25,0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(245,242,237,0.08);
-}
-.light .tm-glass {
-  background: rgba(236,234,230,0.75);
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: var(--radius-lg);
 }
 
-/* ── Trust score meter ──────────────────────────────────────────────── */
+/* ── Trust score ratio meter (Sharp/Clean) ──────────────────────────── */
 .tm-meter-track {
-  height: 8px;
-  border-radius: 9999px;
-  background: rgba(245,242,237,0.08);
+  height: 10px;
+  border-radius: 4px;
+  background: #18181b;
   overflow: hidden;
   position: relative;
+  border: 1px solid #27272a;
 }
 .tm-meter-fill {
   height: 100%;
-  border-radius: 9999px;
+  border-radius: 3px;
   transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background-color 0.4s;
 }
 
-/* ── Agent pipeline chip ────────────────────────────────────────────── */
+/* ── Agent pipeline chip (Clean rectangular tag) ────────────────────── */
 .tm-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
+  padding: 4px 10px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   border: 1px solid currentColor;
 }
 
-/* ── Pill input ─────────────────────────────────────────────────────── */
+/* ── Input field (Sleek rectangular) ────────────────────────────────── */
 .tm-input {
-  border-radius: 9999px !important;
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  background: var(--input);
-  border: 1px solid rgba(245,242,237,0.15) !important;
+  border-radius: var(--radius-md) !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  background: #09090b;
+  border: 1px solid #27272a !important;
   transition: border-color 0.2s, box-shadow 0.2s;
+  color: #ffffff;
 }
 .tm-input:focus {
-  border-color: var(--tm-rust) !important;
-  box-shadow: 0 0 0 3px rgba(142,58,31,0.2);
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
   outline: none;
 }
 
-/* ── Primary CTA button ─────────────────────────────────────────────── */
+/* ── Primary Button (Clean rectangular) ─────────────────────────────── */
 .tm-btn-primary {
-  border-radius: 9999px !important;
-  background: var(--tm-cream) !important;
-  color: #0C0908 !important;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  border-radius: var(--radius-md) !important;
+  background: #ffffff !important;
+  color: #030303 !important;
+  font-weight: 500;
   transition: opacity 0.2s, transform 0.15s;
 }
 .tm-btn-primary:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
+  transform: translateY(-0.5px);
 }
 .tm-btn-primary:disabled {
   opacity: 0.4;
-}
-.light .tm-btn-primary {
-  background: #0C0908 !important;
-  color: #F5F2ED !important;
+  transform: none;
 }
 
 /* ── Animations ─────────────────────────────────────────────────────── */
 @keyframes tm-fade-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .tm-fade-up {
-  animation: tm-fade-up 0.5s ease both;
+  animation: tm-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes tm-pulse-dot {
@@ -231,54 +177,54 @@
 .tm-loading-dot:nth-child(2) { animation-delay: 0.2s; }
 .tm-loading-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* ── Custom markdown styling ────────────────────────────────────────── */
+/* ── Custom markdown styling (Extremely legible, high contrast) ────── */
 .tm-prose h1 {
-  @apply text-lg font-bold mt-5 mb-2.5 text-[var(--tm-cream)];
+  @apply text-xl font-bold mt-6 mb-3 text-white border-b border-zinc-800 pb-1.5;
 }
 .tm-prose h2 {
-  @apply text-sm font-bold mt-4 mb-2 text-[var(--tm-cream)] uppercase tracking-wider;
+  @apply text-base font-bold mt-5 mb-2 text-white uppercase tracking-wider;
 }
 .tm-prose h3 {
-  @apply text-xs font-bold mt-3.5 mb-1.5 text-[var(--tm-secondary)] uppercase tracking-widest;
+  @apply text-sm font-semibold mt-4 mb-1.5 text-zinc-300;
 }
 .tm-prose p {
-  @apply text-sm leading-relaxed text-[var(--tm-on-surface)] my-2;
+  @apply text-sm leading-relaxed text-zinc-300 my-2.5;
 }
 .tm-prose ul {
-  @apply list-disc pl-5 my-2 space-y-1 text-sm text-[var(--tm-on-surface-var)];
+  @apply list-disc pl-5 my-3 space-y-1.5 text-sm text-zinc-300;
 }
 .tm-prose ol {
-  @apply list-decimal pl-5 my-2 space-y-1 text-sm text-[var(--tm-on-surface-var)];
+  @apply list-decimal pl-5 my-3 space-y-1.5 text-sm text-zinc-300;
 }
 .tm-prose li {
-  @apply my-1;
+  @apply my-0.5;
 }
 .tm-prose strong {
-  @apply font-semibold text-[var(--tm-cream)];
+  @apply font-bold text-white;
 }
 .tm-prose blockquote {
-  @apply border-l-2 border-[var(--tm-rust)] pl-4 my-3 italic text-[var(--tm-on-surface-var)];
+  @apply border-l-2 border-zinc-600 pl-4 my-3 italic text-zinc-400;
 }
 .tm-prose table {
-  @apply w-full border-collapse my-4 border border-white/[0.06] rounded-xl overflow-hidden text-[11px] leading-normal;
+  @apply w-full border-collapse my-4 border border-zinc-800 rounded-md overflow-hidden text-[12px] leading-normal;
 }
 .tm-prose th {
-  @apply bg-white/[0.02] p-2.5 text-left font-bold border-b border-white/[0.08] text-[var(--tm-cream)] uppercase tracking-wider text-[10px];
+  @apply bg-zinc-900/60 p-3 text-left font-bold border-b border-zinc-800 text-white uppercase tracking-wider text-[10px];
 }
 .tm-prose td {
-  @apply p-2.5 border-b border-white/[0.04] text-[var(--tm-on-surface-var)] font-medium;
+  @apply p-3 border-b border-zinc-900 text-zinc-300 font-medium;
 }
 .tm-prose tr:last-child td {
   @apply border-0;
 }
 .tm-prose tr:hover td {
-  @apply bg-white/[0.02];
+  @apply bg-zinc-900/30;
 }
 .tm-prose code {
-  @apply font-mono text-xs bg-white/[0.05] px-1.5 py-0.5 rounded text-[var(--tm-secondary)] border border-white/[0.04];
+  @apply font-mono text-xs bg-zinc-900 px-1.5 py-0.5 rounded text-amber-500 border border-zinc-800;
 }
 .tm-prose pre {
-  @apply font-mono text-xs bg-white/[0.03] p-4 rounded-xl overflow-x-auto border border-white/[0.06] my-4;
+  @apply font-mono text-xs bg-zinc-950 p-4 rounded-lg overflow-x-auto border border-zinc-800 my-4;
 }
 .tm-prose pre code {
   @apply bg-transparent p-0 text-inherit border-0;
