@@ -1,0 +1,84 @@
+
+services:
+  registry:
+    build: .
+    command: npm run dev --workspace=@trustmesh/registry
+    ports:
+      - "4025:4025"
+    environment:
+      - PORT=4025
+
+  provenance-agent:
+    build: .
+    command: npm run dev --workspace=@trustmesh/provenance-agent
+    ports:
+      - "4021:4021"
+    env_file:
+      - workers/provenance-agent/.env
+    environment:
+      - PORT=4021
+      - REGISTRY_URL=http://registry:4025
+      - HOST=provenance-agent
+    depends_on:
+      - registry
+
+  verification-agent:
+    build: .
+    command: npm run dev --workspace=@trustmesh/verification-agent
+    ports:
+      - "4023:4023"
+    env_file:
+      - workers/verification-agent/.env
+    environment:
+      - PORT=4023
+      - REGISTRY_URL=http://registry:4025
+      - HOST=verification-agent
+    depends_on:
+      - registry
+
+  trust-synthesis-agent:
+    build: .
+    command: npm run dev --workspace=@trustmesh/trust-synthesis-agent
+    ports:
+      - "4022:4022"
+    env_file:
+      - workers/trust-synthesis-agent/.env
+    environment:
+      - PORT=4022
+      - REGISTRY_URL=http://registry:4025
+      - HOST=trust-synthesis-agent
+    depends_on:
+      - registry
+
+  translation-agent:
+    build: .
+    command: npm run dev --workspace=@trustmesh/translation-agent
+    ports:
+      - "4024:4024"
+    env_file:
+      - workers/translation-agent/.env
+    environment:
+      - PORT=4024
+      - REGISTRY_URL=http://registry:4025
+      - HOST=translation-agent
+    depends_on:
+      - registry
+
+  orchestrator:
+    build: .
+    command: npm run dev --workspace=@trustmesh/orchestrator -- --server
+    ports:
+      - "4020:4020"
+    env_file:
+      - orchestrator/.env
+    environment:
+      - REGISTRY_URL=http://registry:4025
+      - PROVENANCE_AGENT_URL=http://provenance-agent:4021
+      - TRUST_SYNTHESIS_AGENT_URL=http://trust-synthesis-agent:4022
+      - VERIFICATION_AGENT_URL=http://verification-agent:4023
+    depends_on:
+      - registry
+      - provenance-agent
+      - verification-agent
+      - trust-synthesis-agent
+      - translation-agent

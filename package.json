@@ -3,9 +3,11 @@
   "private": true,
   "workspaces": [
     "orchestrator",
+    "registry",
     "workers/provenance-agent",
     "workers/trust-synthesis-agent",
-    "workers/verification-agent"
+    "workers/verification-agent",
+    "workers/translation-agent"
   ],
   "dependencies": {
     "algosdk": "^3.6.0",
