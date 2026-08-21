@@ -32,6 +32,7 @@ interface PaymentRecord {
 
 interface ResearchResponse {
   query: string;
+  report?: string;
   provenance?: ProvenanceResult;
   verification?: VerificationResult;
   trustScore?: number;
@@ -39,7 +40,7 @@ interface ResearchResponse {
   translation?: { text: string; targetLanguage: string } | null;
   translationStatus?: "completed" | "skipped" | "failed";
   translationError?: string;
-  payments?: PaymentRecord[];
+  payments?: any[];
 }
 
 interface ResultsPanelProps {
@@ -53,6 +54,37 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
     synthesis:    data.trustScore != null ? "completed" : "skipped",
     translation:  data.translationStatus ?? "skipped",
   } as Record<string, "completed" | "skipped" | "failed" | "pending">;
+
+  const agentInfo: Record<string, { amount: string; receiver: string }> = {
+    "Provenance Agent": {
+      amount: "$0.01",
+      receiver: "PP7JICROIH27MQHZDQUKNH6JZMQRVHQC56E7PICJZR7AL4USZ5HECOXNZM",
+    },
+    "Verification Agent": {
+      amount: "$0.005",
+      receiver: "DJ6DHDJCWWUCG5DJTM35HHI3JMJGJZWEEPQZ63L2HBKGZEYUMMDFBR7M4Y",
+    },
+    "Trust Synthesis Agent": {
+      amount: "$0.005",
+      receiver: "AN62GPJEJC433MRIPGL2I6LGKTCQCKJC7B76YEUPNBPOPBHCDHMCESELS4",
+    },
+    "Translation Agent": {
+      amount: "$0.005",
+      receiver: "35QW4DRG47SW2HOIRAS4QCYT3VBV54UKAQ7G55KECFTNKQ6NEGEGUBIOMU",
+    },
+  };
+
+  const formattedPayments = data.payments?.map(p => {
+    const agentName = p.agent || p.worker || "Unknown Agent";
+    const info = agentInfo[agentName] || { amount: p.amount || "$0.005", receiver: p.receiver || "—" };
+    return {
+      agent: agentName,
+      amount: info.amount,
+      receiver: info.receiver,
+      txId: p.txId || "—",
+      status: (p.txId && p.txId !== "—" ? "settled" : "failed") as "settled" | "pending" | "failed",
+    };
+  }) || [];
 
   return (
     <div className="flex flex-col gap-6 tm-fade-up" id="results-panel">
@@ -88,16 +120,16 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
         </Card>
       )}
 
-      {/* ── Summary ──────────────────────────────────────────── */}
-      {data.summary && (
+      {/* ── Summary / Report ─────────────────────────────────── */}
+      {(data.report || data.summary) && (
         <Card className="tm-glass border-white/[0.06] rounded-2xl overflow-hidden">
           <CardHeader className="pb-3 pt-5 px-6">
             <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">
-              Summary
+              Research Report
             </p>
           </CardHeader>
-          <CardContent className="px-6 pb-5">
-            <p className="text-sm leading-relaxed text-[var(--tm-on-surface)]">{data.summary}</p>
+          <CardContent className="px-6 pb-5 space-y-2">
+            {parseMarkdown(data.report || data.summary || "")}
           </CardContent>
         </Card>
       )}
@@ -194,7 +226,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
             </p>
           </CardHeader>
           <CardContent className="px-6 pb-5">
-            <PaymentAuditTable payments={data.payments} />
+            <PaymentAuditTable payments={formattedPayments} />
           </CardContent>
         </Card>
       )}
@@ -203,7 +235,7 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
   );
 }
 
-/* ── Helper ─────────────────────────────────────────────────────── */
+/* ── Helpers ────────────────────────────────────────────────────── */
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1.5 border-b border-white/[0.04] last:border-0">
@@ -213,4 +245,75 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-sm text-right text-[var(--tm-on-surface)] font-medium">{value}</span>
     </div>
   );
+}
+
+function parseMarkdown(text: string) {
+  if (!text) return null;
+  const lines = text.split("\n");
+  return lines.map((line, idx) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("### ")) {
+      return (
+        <h3 key={idx} className="text-sm font-bold mt-4 mb-1 text-[var(--tm-cream)] uppercase tracking-wider">
+          {trimmed.slice(4)}
+        </h3>
+      );
+    }
+    if (trimmed.startsWith("## ")) {
+      return (
+        <h2 key={idx} className="text-base font-bold mt-5 mb-2 text-[var(--tm-cream)]">
+          {trimmed.slice(3)}
+        </h2>
+      );
+    }
+    if (trimmed.startsWith("# ")) {
+      return (
+        <h1 key={idx} className="text-lg font-bold mt-6 mb-3 text-[var(--tm-cream)]">
+          {trimmed.slice(2)}
+        </h1>
+      );
+    }
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const content = trimmed.slice(2);
+      return (
+        <li key={idx} className="ml-4 list-disc text-sm text-[var(--tm-on-surface-var)] my-0.5">
+          {renderInlineBold(content)}
+        </li>
+      );
+    }
+    if (trimmed === "") {
+      return <div key={idx} className="h-1" />;
+    }
+    return (
+      <p key={idx} className="text-sm leading-relaxed text-[var(--tm-on-surface)] my-1">
+        {renderInlineBold(line)}
+      </p>
+    );
+  });
+}
+
+function renderInlineBold(text: string) {
+  const parts = [];
+  const boldRegex = /\*\*(.*?)\*\*/g;
+  let lastIndex = 0;
+  let match;
+  let keyIdx = 0;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    parts.push(
+      <strong key={keyIdx++} className="font-semibold text-[var(--tm-cream)]">
+        {match[1]}
+      </strong>
+    );
+    lastIndex = boldRegex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
 }

@@ -48,11 +48,11 @@ export function PaymentAuditTable({ payments }: PaymentAuditTableProps) {
       <Table id="payment-audit-table">
         <TableHeader>
           <TableRow className="border-white/[0.06] hover:bg-transparent">
-            <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">Agent</TableHead>
+            <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] pl-6">Agent</TableHead>
             <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">Amount</TableHead>
             <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] hidden sm:table-cell">Receiver</TableHead>
             <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] hidden md:table-cell">Tx ID</TableHead>
-            <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)]">Status</TableHead>
+            <TableHead className="text-[10px] font-bold tracking-widest uppercase text-[var(--tm-on-surface-var)] pr-6">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,7 +61,7 @@ export function PaymentAuditTable({ payments }: PaymentAuditTableProps) {
               key={i}
               className="border-white/[0.04] hover:bg-white/[0.03] transition-colors"
             >
-              <TableCell className="font-medium text-sm">{p.agent}</TableCell>
+              <TableCell className="font-medium text-sm pl-6">{p.agent}</TableCell>
               <TableCell className="font-mono text-sm text-[var(--tm-secondary)]">{p.amount}</TableCell>
               <TableCell className="font-mono text-xs text-[var(--tm-on-surface-var)] hidden sm:table-cell" title={p.receiver}>
                 {truncate(p.receiver, 14)}
@@ -69,7 +69,7 @@ export function PaymentAuditTable({ payments }: PaymentAuditTableProps) {
               <TableCell className="font-mono text-xs text-[var(--tm-on-surface-var)] hidden md:table-cell" title={p.txId}>
                 {truncate(p.txId, 16)}
               </TableCell>
-              <TableCell>
+              <TableCell className="pr-6">
                 <span className={`inline-block text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[p.status] ?? ""}`}>
                   {p.status}
                 </span>

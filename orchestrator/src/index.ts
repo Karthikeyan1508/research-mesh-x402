@@ -414,6 +414,14 @@ async function executeResearch(query: string, translateTo?: string): Promise<Res
     trustScore: summarizeResult.trustScore,
     verificationMethod: summarizeResult.verificationMethod,
     verification: verifyResult,
+    provenance: {
+      type: searchResult.verificationMethod,
+      creator: searchResult.results?.creator,
+      signatureIssuer: searchResult.results?.signatureIssuer,
+      aiDisclosure: searchResult.results?.isAIGenerated,
+      source: searchResult.verificationMethod === "cryptographic" ? "C2PA Manifest Store" : (searchResult.results?.[0]?.url || "Web Search"),
+      confidence: searchResult.verificationMethod === "cryptographic" ? 1.0 : 0.85
+    },
     translationStatus,
     translationError
   };
