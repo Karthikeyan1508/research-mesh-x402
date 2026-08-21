@@ -185,14 +185,14 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
             </p>
           </CardHeader>
           <CardContent className="px-6 pb-5">
-            <p className="text-sm font-semibold mb-3 text-[var(--tm-on-surface)]">
+            <p className="text-base font-semibold mb-3 text-white">
               {data.verification.verdict}
             </p>
             {data.verification.evidence?.length > 0 && (
               <ul className="list-none space-y-1.5">
                 {data.verification.evidence.map((e, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-[var(--tm-on-surface-var)]">
-                    <span className="mt-0.5 text-[var(--tm-good)] text-xs">▸</span>
+                  <li key={i} className="flex items-start gap-2 text-base text-zinc-350">
+                    <span className="mt-1 text-[var(--tm-good)] text-xs">▸</span>
                     {e}
                   </li>
                 ))}
@@ -237,11 +237,11 @@ export function ResultsPanel({ data }: ResultsPanelProps) {
 /* ── Helpers ────────────────────────────────────────────────────── */
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2 border-b border-zinc-900 last:border-0">
-      <span className="text-xs font-semibold tracking-wider uppercase text-zinc-400 shrink-0">
+    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-zinc-900 last:border-0">
+      <span className="text-sm font-semibold tracking-wider uppercase text-zinc-400 shrink-0">
         {label}
       </span>
-      <span className="text-sm text-right text-zinc-200 font-medium">{value}</span>
+      <span className="text-base text-right text-zinc-200 font-medium">{value}</span>
     </div>
   );
 }

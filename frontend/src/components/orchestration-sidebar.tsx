@@ -96,7 +96,7 @@ export function OrchestrationSidebar({
   const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [visibleLogs, setVisibleLogs] = useState<string[]>([]);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Filter steps to include translation only if selected
   const activeSteps = hasTranslation
@@ -178,7 +178,10 @@ export function OrchestrationSidebar({
 
   // Scroll to bottom of logs when new logs are added
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [visibleLogs]);
 
   return (
@@ -261,12 +264,12 @@ export function OrchestrationSidebar({
         <Separator className="bg-zinc-800 shrink-0" />
 
         {/* Live Logs Ticker */}
-        <div className="flex-1 min-h-0 flex flex-col bg-zinc-950/60 rounded-md border border-zinc-800 p-4 font-mono text-[10px] leading-relaxed text-zinc-400">
-          <div className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-850 pb-1.5 shrink-0 flex items-center justify-between">
+        <div className="flex-1 min-h-0 flex flex-col bg-zinc-950/60 rounded-md border border-zinc-800 p-4 font-mono text-xs leading-relaxed text-zinc-400">
+          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2 border-b border-zinc-855 pb-1.5 shrink-0 flex items-center justify-between">
             <span>Terminal Output</span>
             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-2">
+          <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-2">
             {visibleLogs.map((log, idx) => {
               let color = "text-zinc-400";
               if (log.startsWith("[SYSTEM]")) color = "text-blue-400 font-bold";
@@ -280,7 +283,6 @@ export function OrchestrationSidebar({
                 </div>
               );
             })}
-            <div ref={logEndRef} />
           </div>
         </div>
       </CardContent>

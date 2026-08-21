@@ -63,7 +63,7 @@
   --color-border:             var(--border);
   --color-input:              var(--input);
   --color-ring:               var(--ring);
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
   --radius-sm:  calc(var(--radius) * 0.75);
   --radius-md:  var(--radius);
   --radius-lg:  calc(var(--radius) * 1.5); /* 9px */
@@ -77,7 +77,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 }
@@ -141,21 +141,17 @@
   outline: none;
 }
 
-/* ── Primary Button (Clean rectangular) ─────────────────────────────── */
 .tm-btn-primary {
   border-radius: var(--radius-md) !important;
   background: #ffffff !important;
   color: #030303 !important;
   font-weight: 500;
-  transition: opacity 0.2s, transform 0.15s;
 }
 .tm-btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-0.5px);
+  background: #f4f4f5 !important;
 }
 .tm-btn-primary:disabled {
   opacity: 0.4;
-  transform: none;
 }
 
 /* ── Animations ─────────────────────────────────────────────────────── */
@@ -179,22 +175,22 @@
 
 /* ── Custom markdown styling (Extremely legible, high contrast) ────── */
 .tm-prose h1 {
-  @apply text-xl font-bold mt-6 mb-3 text-white border-b border-zinc-800 pb-1.5;
+  @apply text-2xl font-bold mt-7 mb-4 text-white border-b border-zinc-850 pb-2;
 }
 .tm-prose h2 {
-  @apply text-base font-bold mt-5 mb-2 text-white uppercase tracking-wider;
+  @apply text-lg font-bold mt-6 mb-3 text-white uppercase tracking-wider;
 }
 .tm-prose h3 {
-  @apply text-sm font-semibold mt-4 mb-1.5 text-zinc-300;
+  @apply text-base font-semibold mt-5 mb-2 text-zinc-300;
 }
 .tm-prose p {
-  @apply text-sm leading-relaxed text-zinc-300 my-2.5;
+  @apply text-base leading-relaxed text-zinc-300 my-3.5;
 }
 .tm-prose ul {
-  @apply list-disc pl-5 my-3 space-y-1.5 text-sm text-zinc-300;
+  @apply list-disc pl-6 my-3.5 space-y-2 text-base text-zinc-300;
 }
 .tm-prose ol {
-  @apply list-decimal pl-5 my-3 space-y-1.5 text-sm text-zinc-300;
+  @apply list-decimal pl-6 my-3.5 space-y-2 text-base text-zinc-300;
 }
 .tm-prose li {
   @apply my-0.5;
@@ -206,13 +202,13 @@
   @apply border-l-2 border-zinc-600 pl-4 my-3 italic text-zinc-400;
 }
 .tm-prose table {
-  @apply w-full border-collapse my-4 border border-zinc-800 rounded-md overflow-hidden text-[12px] leading-normal;
+  @apply w-full border-collapse my-5 border border-zinc-800 rounded-md overflow-hidden text-sm leading-normal;
 }
 .tm-prose th {
-  @apply bg-zinc-900/60 p-3 text-left font-bold border-b border-zinc-800 text-white uppercase tracking-wider text-[10px];
+  @apply bg-zinc-900/60 p-3.5 text-left font-bold border-b border-zinc-800 text-white uppercase tracking-wider text-[11px];
 }
 .tm-prose td {
-  @apply p-3 border-b border-zinc-900 text-zinc-300 font-medium;
+  @apply p-3.5 border-b border-zinc-900 text-zinc-300 font-medium;
 }
 .tm-prose tr:last-child td {
   @apply border-0;
@@ -221,10 +217,10 @@
   @apply bg-zinc-900/30;
 }
 .tm-prose code {
-  @apply font-mono text-xs bg-zinc-900 px-1.5 py-0.5 rounded text-amber-500 border border-zinc-800;
+  @apply font-mono text-sm bg-zinc-900 px-1.5 py-0.5 rounded text-amber-500 border border-zinc-800;
 }
 .tm-prose pre {
-  @apply font-mono text-xs bg-zinc-950 p-4 rounded-lg overflow-x-auto border border-zinc-800 my-4;
+  @apply font-mono text-sm bg-zinc-950 p-4 rounded-lg overflow-x-auto border border-zinc-800 my-4;
 }
 .tm-prose pre code {
   @apply bg-transparent p-0 text-inherit border-0;

@@ -128,26 +128,18 @@ export default function Home() {
     setError(null);
   }
 
+  const isWorkspaceActive = loading || result;
+
   return (
     <div className="relative min-h-screen tm-glow-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 w-full bg-zinc-950/95 backdrop-blur-md border-b border-zinc-850">
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 py-4 flex items-center justify-between">
-          {/* Wordmark */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={handleReset}>
-            <div
-              className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold"
-              style={{ background: "#3b82f6", color: "#ffffff" }}
-              aria-hidden="true"
-            >
-              T
-            </div>
-            <span className="text-sm font-bold tracking-wider uppercase text-white">
+          {/* Wordmark (Strictly clean text, no logo badge) */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={handleReset}>
+            <span className="text-base font-black tracking-widest uppercase text-white">
               TrustMesh
-            </span>
-            <span className="hidden sm:inline-block text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded border border-zinc-850 text-zinc-400 bg-zinc-900/40">
-              x402
             </span>
           </div>
 
@@ -161,69 +153,137 @@ export default function Home() {
 
       {/* ── Main Layout Workspace ──────────────────────────────── */}
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-10 flex flex-col justify-start">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
-          
-          {/* Left Column: Input and Results */}
-          <div className="flex flex-col gap-6 min-w-0">
+        {isWorkspaceActive ? (
+          /* Active Results Layout (Two Columns) */
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
             
-            {/* Title / Hero (Centered on initial load, clean header when result is active) */}
-            <div className={`transition-all duration-500 ${result ? "text-left border-b border-zinc-900 pb-4" : "text-center pt-10 pb-4"}`}>
-              {/* Eyebrow */}
-              <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-2">
-                Decentralized Trust Protocol
-              </p>
-
-              {/* Display headline */}
-              <h1 className={`font-bold leading-tight tracking-tight text-white transition-all duration-500 ${
-                result ? "text-2xl" : "text-4xl sm:text-5xl"
-              }`} style={{ letterSpacing: "-0.02em" }}>
-                Verify Content Provenance.{" "}
-                <span className="text-blue-500">Secure Trust.</span>
-              </h1>
-
-              {result && (
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs text-zinc-400">Query: <strong className="text-zinc-200">{result.query || query}</strong></span>
-                  <button onClick={handleReset} className="text-xs text-blue-500 hover:text-blue-400 font-medium ml-2 border border-blue-500/20 bg-blue-500/5 px-2 py-0.5 rounded">
-                    New Research
-                  </button>
-                </div>
-              )}
-
-              {!result && (
-                <p className="text-zinc-400 text-sm leading-relaxed max-w-xl mx-auto mt-2.5">
-                  An automated multi-agent settlement pipeline that performs cryptographic metadata audits, cross-references factual assertions, and issues on-chain trust payouts in real time.
+            {/* Left Column: Input and Results */}
+            <div className="flex flex-col gap-6 min-w-0">
+              
+              {/* Active Header (Left-aligned details) */}
+              <div className="text-left border-b border-zinc-900 pb-4">
+                <p className="text-xs font-bold tracking-widest uppercase text-zinc-500 mb-2">
+                  Decentralized Trust Protocol
                 </p>
-              )}
+                <h1 className="font-bold leading-tight tracking-tight text-white text-3xl" style={{ letterSpacing: "-0.02em" }}>
+                  Verify Content Provenance. <span className="text-blue-500">Secure Trust.</span>
+                </h1>
+                {result && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm text-zinc-400">Query: <strong className="text-zinc-200">{result.query || query}</strong></span>
+                    <button onClick={handleReset} className="text-xs text-blue-500 hover:text-blue-400 font-semibold ml-2 border border-blue-500/20 bg-blue-500/5 px-2 py-0.5 rounded">
+                      New Research
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Query Input form */}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5 tm-glass animate-fade-in" id="research-form">
+                <div className="relative">
+                  <Input
+                    id="query-input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Enter a claim or image URL to verify..."
+                    className="tm-input h-14 text-lg pr-36"
+                    disabled={loading}
+                    required
+                    autoFocus
+                  />
+                  <Button
+                    type="submit"
+                    id="research-button"
+                    disabled={loading || !query.trim()}
+                    className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm font-semibold"
+                  >
+                    {loading ? "Researching…" : "Verify Claims"}
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                    Target Language Translation (Optional)
+                  </label>
+                  <Input
+                    id="translate-to-input"
+                    value={translateTo}
+                    onChange={(e) => setTranslateTo(e.target.value)}
+                    placeholder="Translate final report to… (e.g. Spanish, French, German)"
+                    className="tm-input h-11 text-base"
+                    disabled={loading}
+                  />
+                </div>
+              </form>
+
+              {/* Results Container */}
+              <div ref={resultsRef} className="min-w-0">
+                {error && <ErrorBanner message={error} />}
+                {result && !loading && (
+                  <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
+                )}
+                {loading && !result && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                    <LoadingDots />
+                    <p className="text-sm font-medium text-zinc-400 animate-pulse tracking-wide uppercase text-xs">
+                      Consulting decentralized Bazaar agents...
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* ── Query form ─────────────────────────────────────── */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6 tm-glass" id="research-form">
-              {/* Main query input */}
+            {/* Right Column: Execution Control Center */}
+            <div className="opacity-100 translate-x-0">
+              <OrchestrationSidebar
+                loading={loading}
+                hasTranslation={!!translateTo.trim()}
+                completedData={result}
+              />
+            </div>
+
+          </div>
+        ) : (
+          /* Initial Home Layout (Single Centered Column, perfectly balanced) */
+          <div className="max-w-3xl mx-auto w-full flex flex-col gap-8 pt-12 pb-20 items-center text-center">
+            
+            {/* Centered Headline */}
+            <div>
+              <p className="text-xs font-bold tracking-widest uppercase text-zinc-500 mb-2.5">
+                Decentralized Trust Protocol
+              </p>
+              <h1 className="font-bold leading-tight tracking-tight text-white text-4xl sm:text-5xl mb-3.5" style={{ letterSpacing: "-0.02em" }}>
+                Verify Content Provenance. <span className="text-blue-500">Secure Trust.</span>
+              </h1>
+              <p className="text-zinc-400 text-base leading-relaxed max-w-xl mx-auto mt-2.5">
+                An automated multi-agent settlement pipeline that performs cryptographic metadata audits, cross-references factual assertions, and issues on-chain trust payouts in real time.
+              </p>
+            </div>
+
+            {/* Center Input Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6 tm-glass w-full text-left" id="research-form">
               <div className="relative">
                 <Input
                   id="query-input"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Enter a claim or image URL to verify..."
-                  className="tm-input h-14 text-base pr-36"
-                  disabled={loading}
+                  className="tm-input h-14 text-lg pr-36"
                   required
                   autoFocus
                 />
                 <Button
                   type="submit"
                   id="research-button"
-                  disabled={loading || !query.trim()}
-                  className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm"
+                  disabled={!query.trim()}
+                  className="tm-btn-primary absolute right-1.5 top-1/2 -translate-y-1/2 h-11 px-6 text-sm font-semibold"
                 >
-                  {loading ? "Researching…" : "Verify Claims"}
+                  Verify Claims
                 </Button>
               </div>
 
-              {/* Optional translation language */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="translate-to-input" className="text-[9px] font-bold tracking-widest text-zinc-500 uppercase">
+                <label htmlFor="translate-to-input" className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                   Target Language Translation (Optional)
                 </label>
                 <Input
@@ -231,99 +291,66 @@ export default function Home() {
                   value={translateTo}
                   onChange={(e) => setTranslateTo(e.target.value)}
                   placeholder="Translate final report to… (e.g. Spanish, French, German)"
-                  className="tm-input h-11 text-sm"
-                  disabled={loading}
+                  className="tm-input h-11 text-base"
                 />
               </div>
             </form>
 
-            {/* ── Welcome Area: Sample Queries & Pipeline Guideline (Only visible initially) ── */}
-            {!result && !loading && (
-              <div className="flex flex-col gap-8 tm-fade-up">
-                
-                {/* Sample Grid */}
-                <div className="flex flex-col gap-3">
-                  <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-400">
-                    Select a query to test the live payment pipeline:
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {SAMPLE_QUERIES.map((sample, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => handleSampleClick(sample)}
-                        className="p-5 rounded-lg border border-zinc-850 bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/40 cursor-pointer transition-all duration-200 group flex flex-col justify-between min-h-[130px]"
-                      >
-                        <div>
-                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/25">
-                            {sample.tag}
-                          </span>
-                          <p className="text-xs font-semibold text-white mt-3 group-hover:text-blue-300 line-clamp-2">
-                            {sample.title}
-                          </p>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 mt-2 line-clamp-3">
-                          {sample.desc}
-                        </p>
-                      </div>
-                    ))}
+            {/* Interactive Sample Cards */}
+            <div className="flex flex-col gap-3 w-full text-left tm-fade-up">
+              <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-500">
+                Select a query to test the live payment pipeline:
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {SAMPLE_QUERIES.map((sample, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleSampleClick(sample)}
+                    className="p-5 rounded-lg border border-zinc-800 bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/40 cursor-pointer transition-all duration-200 group flex flex-col justify-between min-h-[140px]"
+                  >
+                    <div>
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/25">
+                        {sample.tag}
+                      </span>
+                      <p className="text-sm font-semibold text-white mt-3 group-hover:text-blue-300 line-clamp-2">
+                        {sample.title}
+                      </p>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-2 line-clamp-3">
+                      {sample.desc}
+                    </p>
                   </div>
-                </div>
-
-                {/* Architecture Visual Guideline */}
-                <div className="p-6 rounded-lg border border-zinc-850 bg-zinc-950/20 flex flex-col gap-4">
-                  <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-400">
-                    Bazaar Protocol Architecture Pipeline
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-                    <div className="flex flex-col gap-1 border-l border-indigo-500/30 pl-3">
-                      <span className="font-mono text-[10px] text-indigo-400 font-bold uppercase">1. Provenance</span>
-                      <p className="text-[11px] text-zinc-400">C2PA Signature validation or web source checks.</p>
-                    </div>
-                    <div className="flex flex-col gap-1 border-l border-cyan-500/30 pl-3">
-                      <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase">2. Verification</span>
-                      <p className="text-[11px] text-zinc-400">Claims extraction & cross-checked web citations.</p>
-                    </div>
-                    <div className="flex flex-col gap-1 border-l border-amber-500/30 pl-3">
-                      <span className="font-mono text-[10px] text-amber-400 font-bold uppercase">3. Synthesis</span>
-                      <p className="text-[11px] text-zinc-400">Score aggregation and markdown report build.</p>
-                    </div>
-                    <div className="flex flex-col gap-1 border-l border-pink-500/30 pl-3">
-                      <span className="font-mono text-[10px] text-pink-400 font-bold uppercase">4. Translation</span>
-                      <p className="text-[11px] text-zinc-400">Gemini-driven multilingual translation.</p>
-                    </div>
-                  </div>
-                </div>
-
+                ))}
               </div>
-            )}
-
-            {/* ── Results Display Area ──────────────────────────────── */}
-            <div ref={resultsRef} className="min-w-0">
-              {error && <ErrorBanner message={error} />}
-              {result && !loading && (
-                <ResultsPanel data={result as Parameters<typeof ResultsPanel>[0]["data"]} />
-              )}
-              {loading && !result && (
-                <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-                  <LoadingDots />
-                  <p className="text-sm font-medium text-zinc-400 animate-pulse tracking-wide uppercase text-[9px]">
-                    Consulting decentralized Bazaar agents...
-                  </p>
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* Right Column: Active Orchestration Control Center */}
-          <div className={`transition-all duration-500 ${(loading || result) ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none hidden lg:block"}`}>
-            <OrchestrationSidebar
-              loading={loading}
-              hasTranslation={!!translateTo.trim()}
-              completedData={result}
-            />
-          </div>
+            {/* Architecture Pipeline Flow */}
+            <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-950/20 w-full text-left flex flex-col gap-4">
+              <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-500">
+                Bazaar Protocol Architecture Pipeline
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+                <div className="flex flex-col gap-1 border-l border-indigo-500/30 pl-3">
+                  <span className="font-mono text-[10px] text-indigo-400 font-bold uppercase">1. Provenance</span>
+                  <p className="text-xs text-zinc-400">C2PA Signature validation or web source checks.</p>
+                </div>
+                <div className="flex flex-col gap-1 border-l border-cyan-500/30 pl-3">
+                  <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase">2. Verification</span>
+                  <p className="text-xs text-zinc-400">Claims extraction & verified web citations.</p>
+                </div>
+                <div className="flex flex-col gap-1 border-l border-amber-500/30 pl-3">
+                  <span className="font-mono text-[10px] text-amber-400 font-bold uppercase">3. Synthesis</span>
+                  <p className="text-xs text-zinc-400">Score aggregation and markdown report build.</p>
+                </div>
+                <div className="flex flex-col gap-1 border-l border-pink-500/30 pl-3">
+                  <span className="font-mono text-[10px] text-pink-400 font-bold uppercase">4. Translation</span>
+                  <p className="text-xs text-zinc-400">Gemini-driven multilingual translation.</p>
+                </div>
+              </div>
+            </div>
 
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
