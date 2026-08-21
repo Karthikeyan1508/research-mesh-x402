@@ -1,0 +1,232 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── TrustMesh design tokens (DESIGN 3.md) ───────────────────────────── */
+:root {
+  /* Obsidian Earth base */
+  --tm-bg:               #0C0908;
+  --tm-surface:          #161311;
+  --tm-surface-low:      #1e1b19;
+  --tm-surface-mid:      #231f1d;
+  --tm-surface-high:     #2d2928;
+  --tm-surface-highest:  #383432;
+
+  /* Text */
+  --tm-cream:            #F5F2ED;
+  --tm-on-surface:       #e9e1de;
+  --tm-on-surface-var:   #c8c7be;
+
+  /* Accents */
+  --tm-rust:             #8E3A1F;
+  --tm-blush:            #EBC3B5;
+  --tm-secondary:        #ffb59f;
+  --tm-glow-core:        #5D2615;
+
+  /* Trust score bands */
+  --tm-good:     #22c55e;
+  --tm-warning:  #eab308;
+  --tm-serious:  #f97316;
+  --tm-critical: #ef4444;
+
+  /* Agent categorical palette */
+  --tm-agent-1: #6366f1;   /* Provenance   – indigo  */
+  --tm-agent-2: #06b6d4;   /* Verification – cyan    */
+  --tm-agent-3: #f59e0b;   /* Trust Synth  – amber   */
+  --tm-agent-4: #ec4899;   /* Translation  – pink    */
+
+  /* shadcn mappings – dark by default (Stitch spec is dark-first) */
+  --background:          #0C0908;
+  --foreground:          #e9e1de;
+  --card:                #1e1b19;
+  --card-foreground:     #e9e1de;
+  --popover:             #1e1b19;
+  --popover-foreground:  #e9e1de;
+  --primary:             #F5F2ED;
+  --primary-foreground:  #0C0908;
+  --secondary:           #2d2928;
+  --secondary-foreground:#e9e1de;
+  --muted:               #231f1d;
+  --muted-foreground:    #929189;
+  --accent:              #8E3A1F;
+  --accent-foreground:   #F5F2ED;
+  --destructive:         #ef4444;
+  --border:              rgba(245,242,237,0.1);
+  --input:               rgba(245,242,237,0.08);
+  --ring:                #8E3A1F;
+  --radius:              1rem;
+}
+
+/* Light override */
+.light {
+  --tm-bg:               #F5F2ED;
+  --tm-surface:          #ECEAE6;
+  --tm-surface-low:      #E3E0DC;
+  --tm-surface-mid:      #D8D5D0;
+  --tm-cream:            #0C0908;
+  --tm-on-surface:       #1a1816;
+  --tm-on-surface-var:   #3a3835;
+  --background:          #F5F2ED;
+  --foreground:          #0C0908;
+  --card:                #ECEAE6;
+  --card-foreground:     #0C0908;
+  --popover:             #ECEAE6;
+  --popover-foreground:  #0C0908;
+  --primary:             #0C0908;
+  --primary-foreground:  #F5F2ED;
+  --secondary:           #E3E0DC;
+  --secondary-foreground:#1a1816;
+  --muted:               #E3E0DC;
+  --muted-foreground:    #5a5755;
+  --border:              rgba(12,9,8,0.12);
+  --input:               rgba(12,9,8,0.08);
+  --ring:                #8E3A1F;
+}
+
+@theme inline {
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-popover:            var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:          var(--secondary);
+  --color-secondary-foreground:var(--secondary-foreground);
+  --color-muted:              var(--muted);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-accent:             var(--accent);
+  --color-accent-foreground:  var(--accent-foreground);
+  --color-destructive:        var(--destructive);
+  --color-border:             var(--border);
+  --color-input:              var(--input);
+  --color-ring:               var(--ring);
+  --font-sans: "Inter", system-ui, sans-serif;
+  --radius-sm:  calc(var(--radius) * 0.5);
+  --radius-md:  calc(var(--radius) * 1.5);
+  --radius-lg:  calc(var(--radius) * 2);
+  --radius-xl:  9999px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── Radial glow background ─────────────────────────────────────────── */
+.tm-glow-bg {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(93,38,21,0.55) 0%, transparent 70%),
+    var(--tm-bg);
+}
+
+/* ── Hairline divider ───────────────────────────────────────────────── */
+.tm-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(245,242,237,0.15) 50%, transparent);
+}
+
+/* ── Glassmorphism card ─────────────────────────────────────────────── */
+.tm-glass {
+  background: rgba(30,27,25,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(245,242,237,0.08);
+}
+.light .tm-glass {
+  background: rgba(236,234,230,0.75);
+}
+
+/* ── Trust score meter ──────────────────────────────────────────────── */
+.tm-meter-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(245,242,237,0.08);
+  overflow: hidden;
+  position: relative;
+}
+.tm-meter-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background-color 0.4s;
+}
+
+/* ── Agent pipeline chip ────────────────────────────────────────────── */
+.tm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+/* ── Pill input ─────────────────────────────────────────────────────── */
+.tm-input {
+  border-radius: 9999px !important;
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  background: var(--input);
+  border: 1px solid rgba(245,242,237,0.15) !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tm-input:focus {
+  border-color: var(--tm-rust) !important;
+  box-shadow: 0 0 0 3px rgba(142,58,31,0.2);
+  outline: none;
+}
+
+/* ── Primary CTA button ─────────────────────────────────────────────── */
+.tm-btn-primary {
+  border-radius: 9999px !important;
+  background: var(--tm-cream) !important;
+  color: #0C0908 !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.tm-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.tm-btn-primary:disabled {
+  opacity: 0.4;
+}
+.light .tm-btn-primary {
+  background: #0C0908 !important;
+  color: #F5F2ED !important;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────── */
+@keyframes tm-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tm-fade-up {
+  animation: tm-fade-up 0.5s ease both;
+}
+
+@keyframes tm-pulse-dot {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+.tm-loading-dot {
+  animation: tm-pulse-dot 1.2s ease-in-out infinite;
+}
+.tm-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.tm-loading-dot:nth-child(3) { animation-delay: 0.4s; }
