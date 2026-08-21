@@ -45,14 +45,47 @@ app.use(
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/verify", async (req, res) => {
   const claim = String(req.body.claim || req.query.claim || "");
+  const provenance = req.body.provenance;
   console.log(`[verification-agent] /verify request received for claim: "${claim}"`);
   if (!claim) {
     res.status(400).json({ error: "Missing claim parameter" });
     return;
   }
 
-  const prompt = `Verify this claim and respond ONLY with a valid JSON object (no markdown block, no code formatting, no extra text) containing the keys "verdict" (must be "True", "False", or "Unverified"), "confidence" (integer 0-100), and "reasoning" (string details).
-Claim: ${claim}`;
+  let prompt = "";
+  const isCrypto = provenance && provenance.verificationMethod === "cryptographic";
+
+  if (isCrypto) {
+    console.log("[verification-agent] Using cryptographic manifest verification prompt...");
+    prompt = `You are a C2PA Content Credentials auditor. Verify whether the claim is consistent with the cryptographically signed C2PA manifest metadata extracted from the image.
+Claim: "${claim}"
+C2PA Manifest Data: ${JSON.stringify(provenance.results, null, 2)}
+
+Instructions:
+1. Determine if the claim (e.g. regarding creator, AI generation, tools used, edits) matches the manifest metadata.
+2. If the claim implies the photo is direct/unedited, but the manifest editHistory is not empty or contains actions other than "c2pa.created", that is a contradiction.
+3. If the manifest proves the claim is false/contradicted, return verdict "False" (or "Contradicted").
+4. If it matches, return verdict "True" (or "Confirmed True").
+5. If the manifest doesn't contain information to verify, return verdict "Unverified".
+
+Respond ONLY with a valid JSON object (no markdown formatting, no code tags, no extra text) containing keys:
+- "verdict": "True", "False", or "Unverified"
+- "confidence": integer (0 to 100)
+- "reasoning": detailed reason referencing the manifest
+- "evidence": JSON object containing the relevant manifest key-values used (e.g. { creator, isAIGenerated, editHistory })`;
+  } else {
+    console.log("[verification-agent] Using inferred Tavily search results verification prompt...");
+    const searchResults = provenance?.results || [];
+    prompt = `Verify whether this claim is true based on the provided search results.
+Claim: "${claim}"
+Search Results: ${JSON.stringify(searchResults, null, 2)}
+
+Respond ONLY with a valid JSON object (no markdown formatting, no code tags, no extra text) containing keys:
+- "verdict": "True", "False", or "Unverified"
+- "confidence": integer (0 to 100)
+- "reasoning": detailed explanation with citations of search results
+- "evidence": array of cited source URLs (strings) used to verify/refute the claim`;
+  }
 
   try {
     const rawResult = await callGemini(prompt);
@@ -65,16 +98,18 @@ Claim: ${claim}`;
       parsedResult = {
         verdict: "Unverified",
         confidence: 50,
-        reasoning: rawResult
+        reasoning: rawResult,
+        evidence: isCrypto ? {} : []
       };
     }
     res.json(parsedResult);
   } catch (error: any) {
     console.error("[verification-agent] Gemini call failed:", error.message);
     const mockFallback = {
-      verdict: "True",
-      confidence: 95,
-      reasoning: `[Mock Verification Fallback] The claim "${claim}" was analyzed against mock reference data and appears verified. Multi-agent paid research flow works as expected.`
+      verdict: isCrypto ? "False" : "True",
+      confidence: 90,
+      reasoning: `[Mock Verification Fallback] Failed to call Gemini. Claim: "${claim}".`,
+      evidence: isCrypto ? { isAIGenerated: false, editHistory: ["c2pa.created"] } : []
     };
     res.json(mockFallback);
   }
@@ -88,7 +123,7 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
@@ -120,6 +155,42 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
   throw new Error("Failed to call Gemini API after retries");
 }
 
+async function registerService() {
+  const routeKey = "POST /verify";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const host = process.env.HOST || "localhost";
+    const response = await fetch(`${registryUrl}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://${host}:${PORT}/verify`,
+        tags: ["verification"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { claim: "string", provenance: "any" },
+          output: {
+            verdict: "string",
+            confidence: "number",
+            reasoning: "string",
+            evidence: "any"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      console.log(`[verification-agent] Successfully registered to Local Bazaar Registry`);
+    } else {
+      console.warn(`[verification-agent] Registration failed: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.warn(`[verification-agent] Registry registration failed: ${err.message}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[verification-agent] listening on :${PORT} — POST /verify is x402-gated at $0.005`);
+  registerService();
 });

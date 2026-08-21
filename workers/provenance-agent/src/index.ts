@@ -196,6 +196,41 @@ async function mockSearch(query: string) {
   }));
 }
 
+async function registerService() {
+  const routeKey = "POST /provenance";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const host = process.env.HOST || "localhost";
+    const response = await fetch(`${registryUrl}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://${host}:${PORT}/provenance`,
+        tags: ["provenance"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { query: "string" },
+          output: {
+            query: "string",
+            verificationMethod: "string",
+            results: "any"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      console.log(`[provenance-agent] Successfully registered to Local Bazaar Registry`);
+    } else {
+      console.warn(`[provenance-agent] Registration failed: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.warn(`[provenance-agent] Registry registration failed: ${err.message}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[provenance-agent] listening on :${PORT} — POST /provenance is x402-gated at $0.01`);
+  registerService();
 });

@@ -45,20 +45,62 @@ app.use(
 // --- 3. The actual handler only runs once payment has settled ---
 app.post("/synthesize", async (req, res) => {
   const text = String(req.body.text || req.query.text || "");
-  console.log(`[trust-synthesis-agent] /synthesize request received, text length: ${text.length}`);
+  const verification = req.body.verification;
+  const verificationMethod = req.body.verificationMethod || "inferred";
+
+  console.log(`[trust-synthesis-agent] /synthesize request received, text length: ${text.length}, method: ${verificationMethod}`);
   if (!text) {
     res.status(400).json({ error: "Missing text parameter" });
     return;
   }
 
+  // Calculate Trust Score based on verification verdict, confidence and verificationMethod
+  let trustScore = 50; // default midpoint
+  if (verification) {
+    const confidence = Number(verification.confidence || 0);
+    const verdict = String(verification.verdict || "").toLowerCase();
+
+    const isTrue = verdict.includes("true") || verdict.includes("consistent") || verdict.includes("confirmed") || verdict.includes("supported");
+    const isFalse = verdict.includes("false") || verdict.includes("contradicted") || verdict.includes("inconsistent");
+
+    if (verificationMethod === "cryptographic") {
+      if (isTrue) {
+        trustScore = Math.round(confidence);
+      } else if (isFalse) {
+        trustScore = Math.max(0, Math.round(100 - confidence));
+      } else {
+        trustScore = 50;
+      }
+    } else {
+      // Inferred path: cap maximum score at 85
+      if (isTrue) {
+        trustScore = Math.min(85, Math.round(confidence * 0.85));
+      } else if (isFalse) {
+        trustScore = Math.min(85, Math.max(0, Math.round((100 - confidence) * 0.85)));
+      } else {
+        trustScore = Math.min(85, Math.round(50 * 0.85)); // 43
+      }
+    }
+  }
+
+  console.log(`[trust-synthesis-agent] Computed Trust Score: ${trustScore} (Method: ${verificationMethod})`);
+
   try {
     const summary = await callGemini('Summarize this in 3-4 sentences: ' + text);
     console.log(`[trust-synthesis-agent] /synthesize success, summary length: ${summary.length}`);
-    res.json({ summary });
+    res.json({
+      summary,
+      trustScore,
+      verificationMethod
+    });
   } catch (error: any) {
     console.error("[trust-synthesis-agent] Gemini call failed:", error.message);
     const mockFallback = `[Mock Summary Fallback] The input text of length ${text.length} was processed successfully. It contains details regarding the research query. Multi-agent research is verified working on-chain.`;
-    res.json({ summary: mockFallback });
+    res.json({
+      summary: mockFallback,
+      trustScore,
+      verificationMethod
+    });
   }
 });
 
@@ -70,7 +112,7 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
@@ -102,6 +144,41 @@ async function callGemini(prompt: string, retries = 3, delay = 1000): Promise<st
   throw new Error("Failed to call Gemini API after retries");
 }
 
+async function registerService() {
+  const routeKey = "POST /synthesize";
+  const accepts = routes[routeKey].accepts;
+  try {
+    const registryUrl = process.env.REGISTRY_URL || "http://localhost:4025";
+    const host = process.env.HOST || "localhost";
+    const response = await fetch(`${registryUrl}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resourceUrl: `http://${host}:${PORT}/synthesize`,
+        tags: ["synthesis"],
+        accepts: [accepts],
+        schema: {
+          description: routes[routeKey].description,
+          input: { text: "string", verification: "any", verificationMethod: "string" },
+          output: {
+            summary: "string",
+            trustScore: "number",
+            verificationMethod: "string"
+          }
+        }
+      })
+    });
+    if (response.ok) {
+      console.log(`[trust-synthesis-agent] Successfully registered to Local Bazaar Registry`);
+    } else {
+      console.warn(`[trust-synthesis-agent] Registration failed: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.warn(`[trust-synthesis-agent] Registry registration failed: ${err.message}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`[trust-synthesis-agent] listening on :${PORT} — POST /synthesize is x402-gated at $0.005`);
+  registerService();
 });
